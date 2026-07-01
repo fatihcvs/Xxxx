@@ -9,7 +9,7 @@
     "once": "tsx src/index.ts --once",
     "seed-npc": "tsx src/index.ts --seed-npc",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit"
+    "build": "echo 'worker runs via tsx; no build step'"
   },
   "dependencies": {
     "@fameworld/db": "workspace:*",

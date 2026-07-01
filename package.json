@@ -8,6 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "postinstall": "pnpm --filter @fameworld/db generate",
     "dev": "pnpm --filter @fameworld/web dev",
     "dev:worker": "pnpm --filter @fameworld/worker dev",
     "build": "pnpm -r build",
