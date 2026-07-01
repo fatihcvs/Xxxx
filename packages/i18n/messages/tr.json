@@ -1,0 +1,84 @@
+{
+  "app": {
+    "name": "Fameworld",
+    "tagline": "Müzik hayatını yaşa."
+  },
+  "nav": {
+    "home": "Karakterim",
+    "attributes": "Özellikler & Yetenekler",
+    "city": "Şehir",
+    "career": "Kariyer",
+    "band": "Grup",
+    "finances": "Finans",
+    "settings": "Ayarlar",
+    "logout": "Çıkış yap"
+  },
+  "auth": {
+    "login": "Giriş yap",
+    "register": "Hesap oluştur",
+    "email": "E-posta",
+    "password": "Parola",
+    "loginCta": "Giriş yap",
+    "registerCta": "Hesap oluştur",
+    "toRegister": "Yeni misin? Hesap oluştur",
+    "toLogin": "Zaten hesabın var mı? Giriş yap",
+    "invalid": "Geçersiz e-posta veya parola.",
+    "emailTaken": "Bu e-posta zaten kayıtlı."
+  },
+  "create": {
+    "title": "Karakterini oluştur",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "gender": "Cinsiyet",
+    "male": "Erkek",
+    "female": "Kadın",
+    "other": "Diğer",
+    "city": "Doğum yeri",
+    "submit": "Yaşamaya başla",
+    "intro": "Kim olduğunu ve hikâyenin nerede başladığını seç."
+  },
+  "status": {
+    "mood": "Keyif",
+    "health": "Sağlık",
+    "energy": "Enerji",
+    "money": "Para",
+    "fame": "Ün",
+    "age": "Yaş",
+    "location": "Konum",
+    "date": "Tarih",
+    "hospitalized": "Hastanede"
+  },
+  "home": {
+    "welcome": "Tekrar hoş geldin, {name}",
+    "bornIn": "{city} doğumlu",
+    "yearsOld": "{age} yaşında",
+    "currentlyAt": "Şu an: {place}",
+    "nowhere": "şehirde dışarıda",
+    "hospitalNotice": "Karakterin hastanede iyileşiyor; keyif ve sağlık %15'in üzerine çıkana kadar hareket edemez."
+  },
+  "city": {
+    "title": "{city}",
+    "venues": "Mekanlar",
+    "goHere": "Buraya git",
+    "youAreHere": "Buradasın"
+  },
+  "locale": {
+    "actions": "Aksiyonlar",
+    "rest": "Dinlen",
+    "eat": "Yemek ye",
+    "drink": "Bir şeyler iç",
+    "jobsHere": "Buradaki işler",
+    "apply": "Başvur",
+    "applied": "Artık burada çalışıyorsun",
+    "booksHere": "Kitaplar",
+    "buy": "Satın al",
+    "learn": "Öğren",
+    "restDone": "Kendini daha dinlenmiş hissediyorsun.",
+    "eatDone": "İçin ısındı.",
+    "notEnoughMoney": "Yeterli paran yok.",
+    "backToCity": "Şehre dön"
+  },
+  "common": {
+    "years": "yaş"
+  }
+}

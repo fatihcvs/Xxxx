@@ -1,0 +1,84 @@
+{
+  "app": {
+    "name": "Fameworld",
+    "tagline": "Live the music life."
+  },
+  "nav": {
+    "home": "My Character",
+    "attributes": "Attributes & Skills",
+    "city": "City",
+    "career": "Career",
+    "band": "Band",
+    "finances": "Finances",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "loginCta": "Log in",
+    "registerCta": "Create account",
+    "toRegister": "New here? Create an account",
+    "toLogin": "Already have an account? Log in",
+    "invalid": "Invalid email or password.",
+    "emailTaken": "That email is already registered."
+  },
+  "create": {
+    "title": "Create your character",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "city": "Born in",
+    "submit": "Start living",
+    "intro": "Choose who you are and where your story begins."
+  },
+  "status": {
+    "mood": "Mood",
+    "health": "Health",
+    "energy": "Energy",
+    "money": "Money",
+    "fame": "Fame",
+    "age": "Age",
+    "location": "Location",
+    "date": "Date",
+    "hospitalized": "In hospital"
+  },
+  "home": {
+    "welcome": "Welcome back, {name}",
+    "bornIn": "Born in {city}",
+    "yearsOld": "{age} years old",
+    "currentlyAt": "Currently at {place}",
+    "nowhere": "out in the city",
+    "hospitalNotice": "Your character is recovering in hospital and cannot act until mood and health rise above 15%."
+  },
+  "city": {
+    "title": "{city}",
+    "venues": "Venues",
+    "goHere": "Go here",
+    "youAreHere": "You are here"
+  },
+  "locale": {
+    "actions": "Actions",
+    "rest": "Rest",
+    "eat": "Eat a meal",
+    "drink": "Have a drink",
+    "jobsHere": "Jobs here",
+    "apply": "Apply",
+    "applied": "You now work here",
+    "booksHere": "Books",
+    "buy": "Buy",
+    "learn": "Learn",
+    "restDone": "You feel more rested.",
+    "eatDone": "That hit the spot.",
+    "notEnoughMoney": "Not enough money.",
+    "backToCity": "Back to city"
+  },
+  "common": {
+    "years": "yrs"
+  }
+}

@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-soft text-ink;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Classic page-based panel look */
+.panel {
+  @apply bg-panel rounded-md border border-black/10 shadow-sm;
+}
+.panel-header {
+  @apply px-4 py-2 border-b border-black/10 font-semibold text-sm bg-black/[0.02] rounded-t-md;
+}
+.panel-body {
+  @apply p-4;
+}
+.btn {
+  @apply inline-flex items-center justify-center rounded bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brandDark disabled:opacity-50 transition-colors;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded border border-black/15 px-3 py-1.5 text-sm font-medium hover:bg-black/[0.03];
+}
+.field {
+  @apply w-full rounded border border-black/15 px-3 py-2 text-sm outline-none focus:border-brand;
+}
+.meter {
+  @apply h-2 rounded-full bg-black/10 overflow-hidden;
+}
+.meter > span {
+  @apply block h-full;
+}

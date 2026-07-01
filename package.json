@@ -1,0 +1,26 @@
+{
+  "name": "fameworld",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Fameworld - music-industry life simulation MMO (working title). Original implementation; not affiliated with any existing game.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @fameworld/web dev",
+    "dev:worker": "pnpm --filter @fameworld/worker dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @fameworld/db generate",
+    "db:migrate": "pnpm --filter @fameworld/db migrate",
+    "db:seed": "pnpm --filter @fameworld/db seed",
+    "db:push": "pnpm --filter @fameworld/db push"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

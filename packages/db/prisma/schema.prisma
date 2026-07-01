@@ -1,0 +1,342 @@
+// Fameworld data model. Original schema; not affiliated with any existing game.
+// Meters/attributes evolve in real time and are derived on read from anchors.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts / Auth
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  PLAYER
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  locale       String    @default("en")
+  role         UserRole  @default(PLAYER)
+  vipUntil     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  characters Character[]
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// World / Geography
+// ---------------------------------------------------------------------------
+
+model Country {
+  id     String @id @default(cuid())
+  name   String @unique
+  code   String @unique // ISO-ish code
+  cities City[]
+}
+
+model City {
+  id        String @id @default(cuid())
+  name      String
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+  timezone  String  @default("UTC")
+  reach     Int     @default(5000) // potential local audience
+
+  locales      Locale[]
+  bornHere     Character[] @relation("BornCity")
+  presentHere  Character[] @relation("CurrentCity")
+  bands        Band[]
+
+  @@unique([name, countryId])
+}
+
+enum LocaleType {
+  CLUB
+  RECORD_LABEL
+  UNIVERSITY
+  HOSPITAL
+  SHOP
+  BAR
+  RESTAURANT
+  APARTMENT
+  STADIUM
+  RADIO
+  PARK
+}
+
+model Locale {
+  id       String     @id @default(cuid())
+  name     String
+  type     LocaleType
+  cityId   String
+  city     City       @relation(fields: [cityId], references: [id])
+  capacity Int        @default(100) // for venues
+
+  jobs     Job[]
+  present  Character[] @relation("CurrentLocale")
+  concerts Concert[]
+
+  @@index([cityId, type])
+}
+
+// ---------------------------------------------------------------------------
+// Character
+// ---------------------------------------------------------------------------
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model Character {
+  id        String  @id @default(cuid())
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+  firstName String
+  lastName  String
+  gender    Gender
+  isAlive   Boolean @default(true)
+
+  // Anchored to in-game time.
+  bornAtGame DateTime
+  diedAtGame DateTime?
+
+  cityBornId String
+  cityBorn   City   @relation("BornCity", fields: [cityBornId], references: [id])
+
+  currentCityId String
+  currentCity   City   @relation("CurrentCity", fields: [currentCityId], references: [id])
+
+  currentLocaleId String?
+  currentLocale   Locale? @relation("CurrentLocale", fields: [currentLocaleId], references: [id])
+
+  hospitalizedAt DateTime?
+
+  // Economy / fame
+  money     Int   @default(500)
+  starValue Float @default(0)
+
+  attributes CharacterAttribute[]
+  meters     CharacterMeter[]
+  skills     CharacterSkill[]
+
+  memberships   BandMembership[]
+  employment    Employment[]
+  transactions  Transaction[]
+  learningTasks LearningTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([currentCityId])
+}
+
+model CharacterAttribute {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  attribute   String // matches game-engine Attribute union
+  level       Int       @default(0)
+  xp          Int       @default(0)
+
+  @@unique([characterId, attribute])
+}
+
+enum MeterKind {
+  MOOD
+  HEALTH
+  ENERGY
+}
+
+// Anchored meter: value at anchorAt (real time) + ratePerHour, derived on read.
+model CharacterMeter {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  kind        MeterKind
+  value       Float     @default(100)
+  anchorAt    DateTime  @default(now())
+  ratePerHour Float     @default(0)
+
+  @@unique([characterId, kind])
+}
+
+// ---------------------------------------------------------------------------
+// Skills / Education
+// ---------------------------------------------------------------------------
+
+model Skill {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String // matches game-engine SkillCategory
+  maxLevel Int    @default(20)
+
+  charSkills CharacterSkill[]
+  books      Book[]
+}
+
+model CharacterSkill {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill     @relation(fields: [skillId], references: [id])
+  level       Int       @default(0)
+
+  @@unique([characterId, skillId])
+}
+
+model Book {
+  id      String @id @default(cuid())
+  title   String
+  skillId String
+  skill   Skill  @relation(fields: [skillId], references: [id])
+  price   Int    @default(100)
+}
+
+// A scheduled skill-learning task that completes at a real timestamp.
+enum LearningState {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model LearningTask {
+  id          String        @id @default(cuid())
+  characterId String
+  character   Character     @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  skillId     String
+  fromLevel   Int
+  toLevel     Int
+  startedAt   DateTime      @default(now())
+  finishesAt  DateTime
+  state       LearningState @default(IN_PROGRESS)
+
+  @@index([state, finishesAt])
+}
+
+// ---------------------------------------------------------------------------
+// Jobs / Economy
+// ---------------------------------------------------------------------------
+
+model Job {
+  id       String @id @default(cuid())
+  title    String
+  localeId String
+  locale   Locale @relation(fields: [localeId], references: [id])
+  salary   Int    @default(200) // weekly (paid on in-game Fridays)
+  slots    Int    @default(3)
+
+  employment Employment[]
+}
+
+model Employment {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id])
+  startedAt   DateTime  @default(now())
+  active      Boolean   @default(true)
+
+  @@unique([characterId, jobId])
+}
+
+enum TxnType {
+  SALARY
+  PURCHASE
+  RENT
+  CONCERT
+  OTHER
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  amount      Int // signed
+  type        TxnType
+  memo        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Music
+// ---------------------------------------------------------------------------
+
+model Genre {
+  id   String @id @default(cuid())
+  name String @unique
+  bands Band[]
+}
+
+model Band {
+  id      String @id @default(cuid())
+  name    String
+  cityId  String
+  city    City   @relation(fields: [cityId], references: [id])
+  genreId String?
+  genre   Genre? @relation(fields: [genreId], references: [id])
+  fame    Float  @default(0)
+
+  members  BandMembership[]
+  songs    Song[]
+  concerts Concert[]
+
+  createdAt DateTime @default(now())
+}
+
+model BandMembership {
+  id          String    @id @default(cuid())
+  bandId      String
+  band        Band      @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  role        String // stage role
+  share       Float     @default(0) // revenue share 0..1
+  isLeader    Boolean   @default(false)
+
+  @@unique([bandId, characterId])
+}
+
+model Song {
+  id            String  @id @default(cuid())
+  title         String
+  bandId        String
+  band          Band    @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  quality       Int     @default(0)
+  lyricsQuality Int     @default(0)
+  rehearsal     Int     @default(0) // jam level 0..100
+  composedAt    DateTime @default(now())
+}
+
+model Concert {
+  id           String   @id @default(cuid())
+  bandId       String
+  band         Band     @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  localeId     String
+  locale       Locale   @relation(fields: [localeId], references: [id])
+  scheduledAt  DateTime
+  ticketPrice  Int      @default(20)
+  attendance   Int?
+  revenue      Int?
+  reviewScore  Int?
+  played       Boolean  @default(false)
+
+  @@index([played, scheduledAt])
+}

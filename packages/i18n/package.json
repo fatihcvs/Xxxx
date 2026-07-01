@@ -1,0 +1,11 @@
+{
+  "name": "@fameworld/i18n",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./locales": "./src/locales.ts",
+    "./messages/en": "./messages/en.json",
+    "./messages/tr": "./messages/tr.json"
+  }
+}
