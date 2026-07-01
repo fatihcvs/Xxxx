@@ -47,12 +47,16 @@ docker compose up -d postgres redis
 
 # Database
 pnpm db:migrate                 # apply migrations
-pnpm db:seed                    # starter city, venues, skills, genres, jobs, books
+pnpm db:seed                    # cities, venues, skills, genres, jobs, courses, books
+pnpm seed:npc                   # populate the world with NPC characters, bands & releases
 
 # Run
 pnpm dev                        # web on http://localhost:3000
 pnpm dev:worker                 # world heartbeat (needs Redis)
 ```
+
+An admin dashboard is available at `/<locale>/admin` for accounts with the
+`ADMIN` role, and a health probe at `/api/health`.
 
 ### World clock
 
@@ -69,20 +73,35 @@ visit venues → rest / eat to manage **Mood / Health / Energy** → apply for a
 → buy books at the shop to raise skills. Mood or Health below 15% sends the
 character to hospital; the heartbeat worker admits and discharges them.
 
-## Roadmap (phased)
+## Roadmap (all phases implemented)
 
-- **Phase 0–1 (done):** infra, world clock, character + meters, city/venue
-  navigation, actions, jobs, shop, i18n, auth, heartbeat worker.
-- **Phase 2:** timed skill learning, university, masters, attribute XP, weekly
-  Friday paydays, rent.
+- **Phase 0–1:** infra, world clock, character + meters, city/venue navigation,
+  actions, jobs, shop, i18n, auth, heartbeat worker.
+- **Phase 2:** timed skill learning, university courses, attribute XP, weekly
+  Friday paydays, apartment rent.
 - **Phase 3:** bands, stage roles, song composing, rehearsals, concerts, fame.
-- **Phase 4:** CD releases, charts, radio, reviews, awards.
-- **Phase 5:** relationships, messaging, marriage, children, aging → heir.
-- **Phase 6:** real estate, businesses, city politics, VIP.
-- **Phase 7:** procedural NPC world, balancing, more cities, deployment.
+- **Phase 4:** recorded releases (single/album), weekly sales, charts, royalties.
+- **Phase 5:** relationships, messaging, children, aging → death → heir.
+- **Phase 6:** real estate, businesses, city elections/mayor + tax, VIP.
+- **Phase 7:** multiple cities, procedural NPC world, admin dashboard, deployment.
 
-The engine formulas for song quality and concert outcomes already exist in
-`packages/game-engine` and are unit-tested.
+All simulation formulas live in `packages/game-engine` and are unit-tested.
+
+## Deployment
+
+Both apps ship with Dockerfiles (build from the repo root):
+
+```bash
+docker build -f apps/web/Dockerfile -t fameworld-web .
+docker build -f apps/worker/Dockerfile -t fameworld-worker .
+```
+
+The web image uses Next.js **standalone** output. Provide `DATABASE_URL`,
+`REDIS_URL`, `AUTH_SECRET` and the `WORLD_EPOCH_*` variables at runtime. Run
+migrations (`pnpm db:migrate`) against the production database before starting,
+then run the web container and one worker container. Point a scheduler at the
+worker daemon (BullMQ repeatable job) or invoke
+`pnpm --filter @fameworld/worker once` from cron.
 
 ## Scripts
 
@@ -91,6 +110,7 @@ The engine formulas for song quality and concert outcomes already exist in
 | `pnpm dev` | Run the web app |
 | `pnpm dev:worker` | Run the heartbeat worker (Redis) |
 | `pnpm --filter @fameworld/worker once` | Run one heartbeat sweep (no Redis) |
+| `pnpm seed:npc` | Populate/top-up the procedural NPC world |
 | `pnpm db:migrate` / `pnpm db:seed` | Migrate / seed the database |
 | `pnpm test` | Run game-engine unit tests |
 | `pnpm typecheck` | Typecheck every package |

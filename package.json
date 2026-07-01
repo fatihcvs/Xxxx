@@ -17,7 +17,8 @@
     "db:generate": "pnpm --filter @fameworld/db generate",
     "db:migrate": "pnpm --filter @fameworld/db migrate",
     "db:seed": "pnpm --filter @fameworld/db seed",
-    "db:push": "pnpm --filter @fameworld/db push"
+    "db:push": "pnpm --filter @fameworld/db push",
+    "seed:npc": "pnpm --filter @fameworld/worker seed-npc"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

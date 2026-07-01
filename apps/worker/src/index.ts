@@ -1,5 +1,6 @@
 import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { runHeartbeat } from "./heartbeat";
+import { ensureNpcWorld } from "./npcWorld";
 
 const HEARTBEAT_QUEUE = "world-heartbeat";
 const HEARTBEAT_EVERY_MS = Number(process.env.HEARTBEAT_EVERY_MS ?? 5 * 60 * 1000);
@@ -13,6 +14,13 @@ function redisConnection(): ConnectionOptions {
 async function runOnce(): Promise<void> {
   const result = await runHeartbeat();
   console.log("[heartbeat:once]", result);
+  process.exit(0);
+}
+
+/** Generate/top-up the procedural NPC world and exit (no Redis needed). */
+async function seedNpc(): Promise<void> {
+  const result = await ensureNpcWorld();
+  console.log("[npc:seed]", result);
   process.exit(0);
 }
 
@@ -56,7 +64,9 @@ async function runDaemon(): Promise<void> {
   process.on("SIGTERM", shutdown);
 }
 
-if (process.argv.includes("--once")) {
+if (process.argv.includes("--seed-npc")) {
+  void seedNpc();
+} else if (process.argv.includes("--once")) {
   void runOnce();
 } else {
   void runDaemon();
