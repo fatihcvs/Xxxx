@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -11,6 +11,8 @@ import {
   clampMeter,
   currentMeter,
   needsHospital,
+  learnHours,
+  learningFinishesAt,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -180,8 +182,7 @@ export async function applyJobAction(formData: FormData): Promise<void> {
 
 const buyBookSchema = z.object({ bookId: z.string(), locale: z.string() });
 
-/** MVP simplification: buying a book immediately raises the taught skill by one level.
- *  Faz 2 replaces this with a timed LearningTask completed by the worker. */
+/** Buy a book: it enters the character's owned books and can be studied repeatedly. */
 export async function buyBookAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
   const { bookId, locale } = buyBookSchema.parse({
@@ -193,25 +194,144 @@ export async function buyBookAction(formData: FormData): Promise<void> {
   if (!book) throw new Error("Unknown book");
   if (c.money < book.price) return;
 
+  const already = await prisma.ownedBook.findUnique({
+    where: { characterId_bookId: { characterId: c.id, bookId } },
+  });
+  if (already) return;
+
   await prisma.$transaction([
-    prisma.character.update({
-      where: { id: c.id },
-      data: { money: { decrement: book.price } },
-    }),
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: book.price } } }),
     prisma.transaction.create({
+      data: { characterId: c.id, amount: -book.price, type: TxnType.PURCHASE, memo: `Book: ${book.title}` },
+    }),
+    prisma.ownedBook.create({ data: { characterId: c.id, bookId } }),
+  ]);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+async function intelligenceLevel(characterId: string): Promise<number> {
+  const intel = await prisma.characterAttribute.findUnique({
+    where: { characterId_attribute: { characterId, attribute: "intelligence" } },
+  });
+  return intel?.level ?? 0;
+}
+
+/** Guard: only one active learning task at a time. */
+async function hasActiveLearning(characterId: string): Promise<boolean> {
+  const active = await prisma.learningTask.findFirst({
+    where: { characterId, state: LearningState.IN_PROGRESS },
+  });
+  return !!active;
+}
+
+const studySchema = z.object({ bookId: z.string(), locale: z.string() });
+
+/** Start a timed study session from an owned book (one level), completed by the worker. */
+export async function studyBookAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { bookId, locale } = studySchema.parse({
+    bookId: formData.get("bookId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || (await hasActiveLearning(c.id))) return;
+
+  const owned = await prisma.ownedBook.findUnique({
+    where: { characterId_bookId: { characterId: c.id, bookId } },
+    include: { book: true },
+  });
+  if (!owned) return;
+
+  const current = await prisma.characterSkill.findUnique({
+    where: { characterId_skillId: { characterId: c.id, skillId: owned.book.skillId } },
+  });
+  const fromLevel = current?.level ?? 0;
+  if (fromLevel >= owned.book.maxTeachLevel) return;
+
+  const intel = await intelligenceLevel(c.id);
+  const hours = learnHours(fromLevel, intel);
+  await prisma.learningTask.create({
+    data: {
+      characterId: c.id,
+      skillId: owned.book.skillId,
+      fromLevel,
+      toLevel: fromLevel + 1,
+      finishesAt: learningFinishesAt(hours),
+    },
+  });
+  revalidatePath(`/${locale}/attributes`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+const enrollSchema = z.object({ courseId: z.string(), locale: z.string() });
+
+/** Enrol in a university course: pay a fee and start a faster timed study. */
+export async function enrollCourseAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { courseId, locale } = enrollSchema.parse({
+    courseId: formData.get("courseId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || (await hasActiveLearning(c.id))) return;
+
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course || c.money < course.fee) return;
+
+  const current = await prisma.characterSkill.findUnique({
+    where: { characterId_skillId: { characterId: c.id, skillId: course.skillId } },
+  });
+  const fromLevel = current?.level ?? 0;
+  if (fromLevel >= course.maxTeachLevel) return;
+
+  const intel = await intelligenceLevel(c.id);
+  const hours = learnHours(fromLevel, intel) * course.speedFactor;
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: course.fee } } }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -course.fee, type: TxnType.PURCHASE, memo: `Course: ${course.title}` },
+    }),
+    prisma.learningTask.create({
       data: {
         characterId: c.id,
-        amount: -book.price,
-        type: TxnType.PURCHASE,
-        memo: `Book: ${book.title}`,
+        skillId: course.skillId,
+        fromLevel,
+        toLevel: fromLevel + 1,
+        finishesAt: learningFinishesAt(hours),
       },
     }),
-    prisma.characterSkill.upsert({
-      where: { characterId_skillId: { characterId: c.id, skillId: book.skillId } },
-      update: { level: { increment: 1 } },
-      create: { characterId: c.id, skillId: book.skillId, level: 1 },
-    }),
   ]);
-  revalidatePath(`/${locale}/locale/${book.id}`, "page");
+  revalidatePath(`/${locale}/attributes`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+const DEFAULT_WEEKLY_RENT = 150;
+const rentSchema = z.object({ localeId: z.string(), locale: z.string() });
+
+/** Rent an apartment (one active contract at a time). Rent is charged weekly by the worker. */
+export async function rentApartmentAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { localeId, locale } = rentSchema.parse({
+    localeId: formData.get("localeId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  const apt = await prisma.locale.findUnique({ where: { id: localeId } });
+  if (!apt || apt.type !== LocaleType.APARTMENT || apt.cityId !== c.currentCityId) return;
+
+  const existing = await prisma.rentContract.findFirst({
+    where: { characterId: c.id, active: true },
+  });
+  if (existing) return;
+
+  await prisma.rentContract.create({
+    data: {
+      characterId: c.id,
+      localeId,
+      weeklyRent: DEFAULT_WEEKLY_RENT,
+      lastPaidGameAt: worldClock.toGameTime(),
+    },
+  });
+  revalidatePath(`/${locale}/locale/${localeId}`);
   revalidatePath(`/${locale}`, "layout");
 }

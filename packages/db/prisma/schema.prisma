@@ -86,6 +86,8 @@ model Locale {
   jobs     Job[]
   present  Character[] @relation("CurrentLocale")
   concerts Concert[]
+  courses  Course[]
+  rentContracts RentContract[]
 
   @@index([cityId, type])
 }
@@ -136,6 +138,8 @@ model Character {
   employment    Employment[]
   transactions  Transaction[]
   learningTasks LearningTask[]
+  ownedBooks    OwnedBook[]
+  rentContracts RentContract[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,11 +204,38 @@ model CharacterSkill {
 }
 
 model Book {
-  id      String @id @default(cuid())
-  title   String
-  skillId String
-  skill   Skill  @relation(fields: [skillId], references: [id])
-  price   Int    @default(100)
+  id            String @id @default(cuid())
+  title         String
+  skillId       String
+  skill         Skill  @relation(fields: [skillId], references: [id])
+  price         Int    @default(100)
+  maxTeachLevel Int    @default(5) // highest skill level this book can teach
+
+  ownedBy OwnedBook[]
+}
+
+// A book a character owns and can study repeatedly (one level per study session).
+model OwnedBook {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  bookId      String
+  book        Book      @relation(fields: [bookId], references: [id])
+  acquiredAt  DateTime  @default(now())
+
+  @@unique([characterId, bookId])
+}
+
+// A university course: teaches a skill faster than self-study, for a fee.
+model Course {
+  id            String @id @default(cuid())
+  localeId      String
+  locale        Locale @relation(fields: [localeId], references: [id])
+  skillId       String
+  title         String
+  fee           Int    @default(300)
+  maxTeachLevel Int    @default(10)
+  speedFactor   Float  @default(0.6) // learn time multiplier (<1 = faster)
 }
 
 // A scheduled skill-learning task that completes at a real timestamp.
@@ -244,15 +275,33 @@ model Job {
 }
 
 model Employment {
-  id          String    @id @default(cuid())
-  characterId String
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  jobId       String
-  job         Job       @relation(fields: [jobId], references: [id])
-  startedAt   DateTime  @default(now())
-  active      Boolean   @default(true)
+  id             String    @id @default(cuid())
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  jobId          String
+  job            Job       @relation(fields: [jobId], references: [id])
+  startedAt      DateTime  @default(now())
+  active         Boolean   @default(true)
+  // In-game date of the last salary payment; drives weekly (Friday) paydays.
+  lastPaidGameAt DateTime?
 
   @@unique([characterId, jobId])
+}
+
+// Apartment rental. Rent is charged weekly; 4 missed weeks -> eviction.
+model RentContract {
+  id             String    @id @default(cuid())
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  localeId       String
+  locale         Locale    @relation(fields: [localeId], references: [id])
+  weeklyRent     Int
+  lastPaidGameAt DateTime
+  missedWeeks    Int       @default(0)
+  active         Boolean   @default(true)
+  startedAt      DateTime  @default(now())
+
+  @@index([active])
 }
 
 enum TxnType {

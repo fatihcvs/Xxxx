@@ -76,7 +76,32 @@
     "restDone": "Kendini daha dinlenmiş hissediyorsun.",
     "eatDone": "İçin ısındı.",
     "notEnoughMoney": "Yeterli paran yok.",
-    "backToCity": "Şehre dön"
+    "backToCity": "Şehre dön",
+    "owned": "Sahipsin",
+    "studyHint": "Kitabı bir kez al, sonra Özellikler & Yetenekler'den çalışarak yeteneği zamanla yükselt.",
+    "coursesHere": "Üniversite dersleri",
+    "enroll": "Kaydol",
+    "housing": "Konut",
+    "renting": "Burada bir apartman kiralıyorsun. Kira haftalık tahsil edilir.",
+    "rentInfo": "Haftalık §{rent} karşılığında apartman kirala.",
+    "rent": "Kirala"
+  },
+  "study": {
+    "myBooks": "Kitaplarım",
+    "noBooks": "Henüz kitabın yok. Mağazadan al.",
+    "noSkills": "Henüz yeteneğin yok. Mağazadan kitap al ve çalış.",
+    "study": "Çalış",
+    "maxed": "Ustalaştın",
+    "inProgress": "Şu an çalışıyorsun",
+    "finishes": "bitiş",
+    "learnFromBook": "Çalış"
+  },
+  "career": {
+    "title": "Kariyer",
+    "noJob": "Henüz işin yok. Şehirde bir mekana git ve başvur. Maaşlar oyun-içi Cuma günleri haftalık ödenir.",
+    "salary": "Maaş",
+    "perWeek": "/hafta",
+    "paydayNote": "Maaşlar her oyun-içi Cuma otomatik ödenir."
   },
   "common": {
     "years": "yaş"

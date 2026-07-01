@@ -58,3 +58,27 @@ export function worldClockFromEnv(env: NodeJS.ProcessEnv = process.env): WorldCl
     realDaysPerGameYear: Number(env.REAL_DAYS_PER_GAME_YEAR ?? 56),
   });
 }
+
+// --- In-game calendar helpers (operate on game-time Date values) ---
+
+function gameDayNumber(gameTime: Date): number {
+  return Math.floor(gameTime.getTime() / MS_PER_DAY);
+}
+
+/** Whole in-game weeks (7 game days) between two game instants. */
+export function gameWeeksBetween(fromGame: Date, toGame: Date): number {
+  return Math.floor((toGame.getTime() - fromGame.getTime()) / (7 * MS_PER_DAY));
+}
+
+/**
+ * Number of in-game Fridays strictly after `sinceGame` and up to (including)
+ * `toGame`. Day 0 of the epoch (1970-01-01) is a Thursday, so Fridays are the
+ * day numbers d with d % 7 === 1. Used to drive weekly salary paydays.
+ */
+export function gameFridaysPassed(sinceGame: Date, toGame: Date): number {
+  const a = gameDayNumber(sinceGame);
+  const b = gameDayNumber(toGame);
+  if (b <= a) return 0;
+  const countLE = (n: number) => Math.floor((n - 1) / 7) + 1; // # of Fridays in [0..n]
+  return countLE(b) - countLE(a);
+}

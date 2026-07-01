@@ -115,7 +115,34 @@ async function main() {
     }
   }
 
-  console.log(`Seeded ${country.name} / ${city.name} with ${locales.length} venues, ${SKILLS.length} skills.`);
+  // University courses (faster/pricier than self-study from books).
+  const universityId = localeByName.get("Startown University")!;
+  const courseDefs = [
+    { title: "Music Theory 101", skill: "Basic Composing", fee: 300, maxTeachLevel: 10, speedFactor: 0.6 },
+    { title: "Songwriting Workshop", skill: "Basic Lyrics", fee: 300, maxTeachLevel: 10, speedFactor: 0.6 },
+    { title: "Business Studies", skill: "Basic Business", fee: 350, maxTeachLevel: 10, speedFactor: 0.55 },
+  ];
+  for (const c of courseDefs) {
+    const exists = await prisma.course.findFirst({
+      where: { title: c.title, localeId: universityId },
+    });
+    if (!exists) {
+      await prisma.course.create({
+        data: {
+          title: c.title,
+          localeId: universityId,
+          skillId: skillByName.get(c.skill)!,
+          fee: c.fee,
+          maxTeachLevel: c.maxTeachLevel,
+          speedFactor: c.speedFactor,
+        },
+      });
+    }
+  }
+
+  console.log(
+    `Seeded ${country.name} / ${city.name} with ${locales.length} venues, ${SKILLS.length} skills, ${courseDefs.length} courses.`,
+  );
 }
 
 main()

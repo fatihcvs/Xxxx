@@ -10,6 +10,10 @@ import {
   learnHours,
   composeSong,
   runConcert,
+  gameWeeksBetween,
+  gameFridaysPassed,
+  jobPrimaryAttribute,
+  learningFinishesAt,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -94,5 +98,36 @@ describe("song + concert are deterministic under a seeded rng", () => {
     });
     expect(o.attendance).toBeLessThanOrEqual(200);
     expect(o.revenue).toBe(o.attendance * 20);
+  });
+});
+
+describe("in-game calendar helpers", () => {
+  it("counts whole in-game weeks", () => {
+    const from = new Date("2000-01-01T00:00:00Z");
+    const to = new Date("2000-01-16T00:00:00Z"); // 15 game days
+    expect(gameWeeksBetween(from, to)).toBe(2);
+  });
+
+  it("counts Fridays passed (epoch day 0 is Thursday, so Fridays are day%7==1)", () => {
+    // 2000-01-07 is a Friday.
+    const thu = new Date("2000-01-06T12:00:00Z");
+    const sat = new Date("2000-01-08T12:00:00Z");
+    expect(gameFridaysPassed(thu, sat)).toBe(1);
+    // A full week always contains exactly one Friday.
+    const from = new Date("2000-03-01T00:00:00Z");
+    const to = new Date("2000-03-29T00:00:00Z"); // 28 days
+    expect(gameFridaysPassed(from, to)).toBe(4);
+    // No time elapsed -> no Friday.
+    expect(gameFridaysPassed(sat, sat)).toBe(0);
+  });
+
+  it("maps jobs to a primary attribute and defaults to charm", () => {
+    expect(jobPrimaryAttribute("PR Assistant")).toBe("intelligence");
+    expect(jobPrimaryAttribute("Unknown Job")).toBe("charm");
+  });
+
+  it("computes a learning finish timestamp from real hours", () => {
+    const now = new Date("2024-01-01T00:00:00Z");
+    expect(learningFinishesAt(2, now).getTime()).toBe(now.getTime() + 2 * 3_600_000);
   });
 });

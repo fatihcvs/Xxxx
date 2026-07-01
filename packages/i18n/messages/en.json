@@ -76,7 +76,32 @@
     "restDone": "You feel more rested.",
     "eatDone": "That hit the spot.",
     "notEnoughMoney": "Not enough money.",
-    "backToCity": "Back to city"
+    "backToCity": "Back to city",
+    "owned": "Owned",
+    "studyHint": "Buy a book once, then study it from Attributes & Skills to raise the skill over time.",
+    "coursesHere": "University courses",
+    "enroll": "Enrol",
+    "housing": "Housing",
+    "renting": "You are renting an apartment here. Rent is charged weekly.",
+    "rentInfo": "Rent an apartment for §{rent}/week.",
+    "rent": "Rent"
+  },
+  "study": {
+    "myBooks": "My books",
+    "noBooks": "No books yet. Buy one at a shop.",
+    "noSkills": "No skills yet. Buy a book at a shop and study it.",
+    "study": "Study",
+    "maxed": "Mastered",
+    "inProgress": "Studying now",
+    "finishes": "finishes",
+    "learnFromBook": "Study"
+  },
+  "career": {
+    "title": "Career",
+    "noJob": "You have no job yet. Visit a venue in the city and apply. Salaries are paid weekly on in-game Fridays.",
+    "salary": "Salary",
+    "perWeek": "/week",
+    "paydayNote": "Salaries are paid automatically each in-game Friday."
   },
   "common": {
     "years": "yrs"
