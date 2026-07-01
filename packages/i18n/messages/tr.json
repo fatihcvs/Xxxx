@@ -40,7 +40,8 @@
     "other": "Diğer",
     "city": "Doğum yeri",
     "submit": "Yaşamaya başla",
-    "intro": "Kim olduğunu ve hikâyenin nerede başladığını seç."
+    "intro": "Kim olduğunu ve hikâyenin nerede başladığını seç.",
+    "noCities": "Henüz şehir yok. Önce dünyayı seed'le."
   },
   "status": {
     "mood": "Keyif",

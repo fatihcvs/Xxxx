@@ -25,6 +25,7 @@ import {
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
 import { requireUserId } from "@/lib/session";
+import { ALL_FIRST_NAMES, LAST_NAMES } from "@/lib/names";
 
 const MS_PER_GAME_YEAR = 365 * 24 * 60 * 60 * 1000;
 
@@ -47,6 +48,14 @@ export async function createCharacterAction(formData: FormData): Promise<void> {
     locale: formData.get("locale") ?? "en",
   });
   if (!parsed.success) throw new Error("Invalid character data");
+
+  // Names must be chosen from the curated pools (guards against tampering).
+  if (
+    !ALL_FIRST_NAMES.includes(parsed.data.firstName) ||
+    !LAST_NAMES.includes(parsed.data.lastName)
+  ) {
+    throw new Error("Invalid name selection");
+  }
 
   const existing = await prisma.character.findFirst({
     where: { userId, isAlive: true },

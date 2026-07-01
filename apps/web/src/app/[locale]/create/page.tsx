@@ -2,7 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@fameworld/db";
-import { createCharacterAction } from "@/app/actions/game";
+import { CharacterCreateForm } from "@/components/CharacterCreateForm";
 
 export default async function CreatePage({
   params,
@@ -20,10 +20,11 @@ export default async function CreatePage({
   if (existing) redirect(`/${locale}/home`);
 
   const t = await getTranslations("create");
-  const cities = await prisma.city.findMany({
+  const cityRecords = await prisma.city.findMany({
     include: { country: true },
     orderBy: { name: "asc" },
   });
+  const cities = cityRecords.map((c) => ({ id: c.id, label: `${c.name}, ${c.country.name}` }));
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
@@ -32,40 +33,7 @@ export default async function CreatePage({
           <div className="panel-header">{t("title")}</div>
           <div className="panel-body">
             <p className="text-sm text-ink/60 mb-4">{t("intro")}</p>
-            <form action={createCharacterAction} className="space-y-3">
-              <input type="hidden" name="locale" value={locale} />
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs mb-1 text-ink/70">{t("firstName")}</label>
-                  <input name="firstName" required maxLength={40} className="field" />
-                </div>
-                <div>
-                  <label className="block text-xs mb-1 text-ink/70">{t("lastName")}</label>
-                  <input name="lastName" required maxLength={40} className="field" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs mb-1 text-ink/70">{t("gender")}</label>
-                <select name="gender" className="field" defaultValue="FEMALE">
-                  <option value="FEMALE">{t("female")}</option>
-                  <option value="MALE">{t("male")}</option>
-                  <option value="OTHER">{t("other")}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs mb-1 text-ink/70">{t("city")}</label>
-                <select name="cityId" className="field" required>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}, {c.country.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" className="btn w-full">
-                {t("submit")}
-              </button>
-            </form>
+            <CharacterCreateForm locale={locale} cities={cities} />
           </div>
         </div>
       </div>

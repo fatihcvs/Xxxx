@@ -40,7 +40,8 @@
     "other": "Other",
     "city": "Born in",
     "submit": "Start living",
-    "intro": "Choose who you are and where your story begins."
+    "intro": "Choose who you are and where your story begins.",
+    "noCities": "No cities available yet. Seed the world first."
   },
   "status": {
     "mood": "Mood",
