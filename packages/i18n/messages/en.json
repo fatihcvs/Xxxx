@@ -10,6 +10,8 @@
     "career": "Career",
     "band": "Band",
     "charts": "Charts",
+    "relationships": "Relationships",
+    "messages": "Messages",
     "finances": "Finances",
     "settings": "Settings",
     "logout": "Log out"
@@ -148,6 +150,31 @@
     "sales": "sales",
     "empty": "No releases charting yet.",
     "note": "Charts rank active releases by recent momentum. Record a release to enter."
+  },
+  "relationships": {
+    "family": "Family",
+    "parent": "Parent",
+    "noChildren": "You have no children yet.",
+    "childName": "Child's name",
+    "haveChild": "Have a child",
+    "heirNote": "When your character dies, you continue as your eldest living child (your heir).",
+    "yrs": "yrs",
+    "deceased": "deceased",
+    "addressBook": "Address book",
+    "noRelations": "No relationships yet. Meet people around the city.",
+    "affinity": "affinity",
+    "peopleHere": "People in your city",
+    "nobodyHere": "Nobody around right now.",
+    "known": "known",
+    "socialize": "Socialize"
+  },
+  "messages": {
+    "compose": "New message",
+    "noRecipients": "No one to message yet. Meet people first.",
+    "placeholder": "Write a message…",
+    "send": "Send",
+    "inbox": "Inbox",
+    "empty": "No messages."
   },
   "common": {
     "years": "yrs"

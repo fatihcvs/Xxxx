@@ -18,6 +18,9 @@ import {
   STAGE_ROLES,
   releaseSalesForWeek,
   updateChartScore,
+  annualDeathProbability,
+  deathProbabilityOverWeeks,
+  inheritedAttributeLevel,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -178,5 +181,27 @@ describe("release sales & charts", () => {
   it("chart score blends previous momentum with new sales", () => {
     expect(updateChartScore(100, 50)).toBeCloseTo(105, 5);
     expect(updateChartScore(0, 0)).toBe(0);
+  });
+});
+
+describe("aging & inheritance", () => {
+  it("death risk is low when young and rises with age", () => {
+    expect(annualDeathProbability(20)).toBeLessThan(0.01);
+    expect(annualDeathProbability(90)).toBeGreaterThan(annualDeathProbability(60));
+    expect(annualDeathProbability(200)).toBeLessThanOrEqual(0.98);
+  });
+
+  it("death probability grows with the number of weeks", () => {
+    expect(deathProbabilityOverWeeks(80, 0)).toBe(0);
+    expect(deathProbabilityOverWeeks(80, 52)).toBeGreaterThan(
+      deathProbabilityOverWeeks(80, 4),
+    );
+  });
+
+  it("children inherit a fraction of a parent's attribute level", () => {
+    const child = inheritedAttributeLevel(10, () => 0.5);
+    expect(child).toBeGreaterThanOrEqual(1);
+    expect(child).toBeLessThanOrEqual(10);
+    expect(inheritedAttributeLevel(0, () => 0)).toBe(1);
   });
 });

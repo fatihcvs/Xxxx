@@ -10,6 +10,8 @@
     "career": "Kariyer",
     "band": "Grup",
     "charts": "Sıralamalar",
+    "relationships": "İlişkiler",
+    "messages": "Mesajlar",
     "finances": "Finans",
     "settings": "Ayarlar",
     "logout": "Çıkış yap"
@@ -148,6 +150,31 @@
     "sales": "satış",
     "empty": "Henüz listeye giren yayın yok.",
     "note": "Sıralamalar aktif yayınları güncel ivmeye göre dizer. Girmek için kayıt yap."
+  },
+  "relationships": {
+    "family": "Aile",
+    "parent": "Ebeveyn",
+    "noChildren": "Henüz çocuğun yok.",
+    "childName": "Çocuğun adı",
+    "haveChild": "Çocuk sahibi ol",
+    "heirNote": "Karakterin öldüğünde en büyük yaşayan çocuğun (varisin) olarak devam edersin.",
+    "yrs": "yaş",
+    "deceased": "vefat etti",
+    "addressBook": "Adres defteri",
+    "noRelations": "Henüz ilişkin yok. Şehirde insanlarla tanış.",
+    "affinity": "yakınlık",
+    "peopleHere": "Şehrindeki kişiler",
+    "nobodyHere": "Şu an kimse yok.",
+    "known": "tanıdık",
+    "socialize": "Sosyalleş"
+  },
+  "messages": {
+    "compose": "Yeni mesaj",
+    "noRecipients": "Mesaj atacak kimse yok. Önce insanlarla tanış.",
+    "placeholder": "Bir mesaj yaz…",
+    "send": "Gönder",
+    "inbox": "Gelen kutusu",
+    "empty": "Mesaj yok."
   },
   "common": {
     "years": "yaş"

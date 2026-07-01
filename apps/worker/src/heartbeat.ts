@@ -9,6 +9,7 @@ import {
   releaseSalesForWeek,
   updateChartScore,
   RELEASE_RETIRE_SCORE,
+  deathProbabilityOverWeeks,
   PAYDAY_XP,
   STUDY_XP,
   type MeterState,
@@ -32,6 +33,8 @@ export interface HeartbeatResult {
   evictions: number;
   releasesSold: number;
   releasesRetired: number;
+  deaths: number;
+  heirsPromoted: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -238,9 +241,68 @@ async function sweepReleases(nowGame: Date): Promise<{ releasesSold: number; rel
 }
 
 /**
+ * Age player characters and roll for death. On death the account continues
+ * through the eldest living child (heir); if there is no heir the account is
+ * left without a character and must create a new one.
+ */
+async function sweepAging(nowGame: Date): Promise<{ deaths: number; heirsPromoted: number }> {
+  // Only player-controlled characters age/die; NPC children are safe until they inherit.
+  const characters = await prisma.character.findMany({
+    where: { isAlive: true, userId: { not: null } },
+    select: { id: true, userId: true, bornAtGame: true, lastAgedGameAt: true },
+  });
+  let deaths = 0;
+  let heirsPromoted = 0;
+
+  for (const c of characters) {
+    if (!c.lastAgedGameAt) {
+      await prisma.character.update({ where: { id: c.id }, data: { lastAgedGameAt: nowGame } });
+      continue;
+    }
+    const weeks = gameWeeksBetween(c.lastAgedGameAt, nowGame);
+    if (weeks <= 0) continue;
+
+    const age = clock.gameYearsBetween(c.bornAtGame, nowGame);
+    const died = Math.random() < deathProbabilityOverWeeks(age, weeks);
+    if (!died) {
+      await prisma.character.update({ where: { id: c.id }, data: { lastAgedGameAt: nowGame } });
+      continue;
+    }
+
+    const heir = await prisma.character.findFirst({
+      where: { parentId: c.id, isAlive: true },
+      orderBy: { bornAtGame: "asc" },
+    });
+    await prisma.$transaction(async (tx) => {
+      await tx.character.update({
+        where: { id: c.id },
+        data: {
+          isAlive: false,
+          diedAtGame: nowGame,
+          hospitalizedAt: null,
+          currentLocaleId: null,
+          userId: null,
+          lastAgedGameAt: nowGame,
+        },
+      });
+      if (heir && c.userId) {
+        await tx.character.update({
+          where: { id: heir.id },
+          data: { userId: c.userId, lastAgedGameAt: nowGame },
+        });
+      }
+    });
+    deaths += 1;
+    if (heir && c.userId) heirsPromoted += 1;
+  }
+  return { deaths, heirsPromoted };
+}
+
+/**
  * Global sweep over the living world. Meters derive from anchors on read, so
  * the heartbeat flips hospitalisation, completes timed learning, pays weekly
- * salaries on in-game Fridays, charges apartment rent and accrues record sales.
+ * salaries on in-game Fridays, charges apartment rent, accrues record sales and
+ * ages characters (death → heir).
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
@@ -249,6 +311,7 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const paydays = await sweepPayday(nowGame);
   const rent = await sweepRent(nowGame);
   const releases = await sweepReleases(nowGame);
+  const aging = await sweepAging(nowGame);
   return {
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
@@ -259,5 +322,7 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
     evictions: rent.evictions,
     releasesSold: releases.releasesSold,
     releasesRetired: releases.releasesRetired,
+    deaths: aging.deaths,
+    heirsPromoted: aging.heirsPromoted,
   };
 }

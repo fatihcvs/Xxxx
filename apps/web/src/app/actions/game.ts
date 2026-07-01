@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -18,6 +18,7 @@ import {
   performanceQuality,
   REHEARSAL_PER_SESSION,
   STAGE_ROLES,
+  inheritedAttributeLevel,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -636,4 +637,103 @@ export async function recordReleaseAction(formData: FormData): Promise<void> {
     }),
   ]);
   revalidatePath(`/${locale}/band`);
+}
+
+// ---------------------------------------------------------------------------
+// Social & Family (Faz 5)
+// ---------------------------------------------------------------------------
+
+const socializeSchema = z.object({ targetId: z.string(), locale: z.string() });
+
+/** Socialize with another character in the same city: raise friendship, small mood gain. */
+export async function socializeAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { targetId, locale } = socializeSchema.parse({
+    targetId: formData.get("targetId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || targetId === c.id) return;
+
+  const target = await prisma.character.findUnique({ where: { id: targetId } });
+  if (!target || !target.isAlive || target.currentCityId !== c.currentCityId) return;
+
+  await prisma.relationship.upsert({
+    where: { fromId_toId: { fromId: c.id, toId: targetId } },
+    update: { level: { increment: 8 } },
+    create: { fromId: c.id, toId: targetId, type: RelationType.FRIEND, level: 8 },
+  });
+  await applyDeltas(userId, { MOOD: 3, ENERGY: -4 });
+  revalidatePath(`/${locale}/relationships`);
+}
+
+const messageSchema = z.object({
+  toId: z.string(),
+  body: z.string().min(1).max(1000),
+  locale: z.string().default("en"),
+});
+
+/** Send an in-game message to another character. */
+export async function sendMessageAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = messageSchema.safeParse({
+    toId: formData.get("toId"),
+    body: formData.get("body"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const c = await loadLivingCharacter(userId);
+  const target = await prisma.character.findUnique({ where: { id: parsed.data.toId } });
+  if (!target || !target.isAlive || target.id === c.id) return;
+
+  await prisma.message.create({
+    data: { fromId: c.id, toId: parsed.data.toId, body: parsed.data.body },
+  });
+  revalidatePath(`/${parsed.data.locale}/messages`);
+}
+
+const MAX_CHILDREN = 4;
+
+/** Have a child: creates an heir with attributes inherited from the parent. */
+export async function haveChildAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const locale = String(formData.get("locale") ?? "en");
+  if (!firstName || firstName.length > 40) return;
+
+  const parent = await prisma.character.findFirst({
+    where: { userId, isAlive: true },
+    include: { attributes: true, _count: { select: { children: true } } },
+  });
+  if (!parent) return;
+  if (parent._count.children >= MAX_CHILDREN) return;
+
+  const now = new Date();
+  await prisma.character.create({
+    data: {
+      firstName,
+      lastName: parent.lastName,
+      gender: Gender.OTHER,
+      bornAtGame: worldClock.toGameTime(),
+      cityBornId: parent.currentCityId,
+      currentCityId: parent.currentCityId,
+      parentId: parent.id,
+      money: 0,
+      attributes: {
+        create: ATTRIBUTES.map((attribute) => {
+          const parentLevel = parent.attributes.find((a) => a.attribute === attribute)?.level ?? 1;
+          return { attribute, level: inheritedAttributeLevel(parentLevel), xp: 0 };
+        }),
+      },
+      meters: {
+        create: (["MOOD", "HEALTH", "ENERGY"] as const).map((kind) => ({
+          kind: MeterKind[kind],
+          value: METER_MAX,
+          anchorAt: now,
+          ratePerHour: DEFAULT_METER_RATES[kind.toLowerCase() as "mood" | "health" | "energy"],
+        })),
+      },
+    },
+  });
+  revalidatePath(`/${locale}/relationships`);
 }

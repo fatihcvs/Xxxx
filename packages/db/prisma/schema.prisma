@@ -125,6 +125,13 @@ model Character {
   currentLocale   Locale? @relation("CurrentLocale", fields: [currentLocaleId], references: [id])
 
   hospitalizedAt DateTime?
+  // In-game time of the last aging/death roll (drives the aging sweep).
+  lastAgedGameAt DateTime?
+
+  // Family / heir line.
+  parentId String?
+  parent   Character?  @relation("Parentage", fields: [parentId], references: [id])
+  children Character[] @relation("Parentage")
 
   // Economy / fame
   money     Int   @default(500)
@@ -141,10 +148,16 @@ model Character {
   ownedBooks    OwnedBook[]
   rentContracts RentContract[]
 
+  relationsFrom Relationship[] @relation("RelFrom")
+  relationsTo   Relationship[] @relation("RelTo")
+  messagesSent     Message[] @relation("MsgFrom")
+  messagesReceived Message[] @relation("MsgTo")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([parentId])
   @@index([currentCityId])
 }
 
@@ -426,4 +439,43 @@ model Concert {
   played       Boolean  @default(false)
 
   @@index([played, scheduledAt])
+}
+
+// ---------------------------------------------------------------------------
+// Social & Family (Faz 5)
+// ---------------------------------------------------------------------------
+
+enum RelationType {
+  FRIEND
+  PARTNER
+  SPOUSE
+  RIVAL
+  FAMILY
+}
+
+model Relationship {
+  id       String       @id @default(cuid())
+  fromId   String
+  from     Character    @relation("RelFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     String
+  to       Character    @relation("RelTo", fields: [toId], references: [id], onDelete: Cascade)
+  type     RelationType @default(FRIEND)
+  level    Int          @default(0) // -100..100 (affinity)
+  updatedAt DateTime     @updatedAt
+
+  @@unique([fromId, toId])
+  @@index([toId])
+}
+
+model Message {
+  id       String    @id @default(cuid())
+  fromId   String
+  from     Character @relation("MsgFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     String
+  to       Character @relation("MsgTo", fields: [toId], references: [id], onDelete: Cascade)
+  body     String
+  sentAt   DateTime  @default(now())
+  readAt   DateTime?
+
+  @@index([toId, sentAt])
 }
