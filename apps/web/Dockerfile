@@ -24,8 +24,6 @@ FROM base AS run
 ENV NODE_ENV=production
 ENV PORT=3000
 WORKDIR /app
-COPY --from=build /app/apps/web/.next/standalone ./
-COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build /app/apps/web/public ./apps/web/public
+COPY --from=build /app ./
 EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
+CMD ["pnpm", "--filter", "@fameworld/web", "start"]
