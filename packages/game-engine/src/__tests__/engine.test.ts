@@ -36,6 +36,7 @@ import {
   FLIGHT_OVERHEAD_MIN,
   FLIGHT_ENERGY_MIN,
   FLIGHT_ENERGY_MAX,
+  pressReleaseFameBoost,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -288,5 +289,14 @@ describe("travel (Faz 13)", () => {
   it("caps the energy cost of long hauls", () => {
     expect(flightEnergyCost(0)).toBe(FLIGHT_ENERGY_MIN);
     expect(flightEnergyCost(50000)).toBe(FLIGHT_ENERGY_MAX);
+  });
+});
+
+describe("media & awards (Faz 10)", () => {
+  it("press release fame boost scales with media skill and clamps", () => {
+    expect(pressReleaseFameBoost(0)).toBe(1);
+    expect(pressReleaseFameBoost(5)).toBe(5);
+    expect(pressReleaseFameBoost(9)).toBe(5);
+    expect(pressReleaseFameBoost(3)).toBeGreaterThan(pressReleaseFameBoost(1));
   });
 });

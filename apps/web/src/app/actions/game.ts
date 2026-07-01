@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind, StageRoleSlot } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind, StageRoleSlot, NewsCategory, grantAchievement } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -31,6 +31,9 @@ import {
   flightCost,
   flightEnergyCost,
   flightArrivesAt,
+  PRESS_RELEASE_COST,
+  PRESS_RELEASE_COOLDOWN_GAME_DAYS,
+  pressReleaseFameBoost,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -233,6 +236,12 @@ export async function flyToCityAction(formData: FormData): Promise<void> {
     }),
   ]);
 
+  await grantAchievement(c.id, "FIRST_FLIGHT");
+  const flights = await prisma.transaction.count({
+    where: { characterId: c.id, memo: { startsWith: "Flight to" } },
+  });
+  if (flights >= 10) await grantAchievement(c.id, "JETSETTER");
+
   revalidatePath(`/${locale}`, "layout");
 }
 
@@ -271,6 +280,7 @@ export async function applyJobAction(formData: FormData): Promise<void> {
     update: { active: true },
     create: { characterId: c.id, jobId },
   });
+  await grantAchievement(c.id, "FIRST_JOB");
   revalidatePath(`/${locale}/locale/${job.localeId}`);
 }
 
@@ -508,6 +518,7 @@ export async function createBandAction(formData: FormData): Promise<void> {
       },
     },
   });
+  await grantAchievement(c.id, "FIRST_BAND");
   revalidatePath(`/${locale}/band`);
 }
 
@@ -551,6 +562,7 @@ export async function composeSongAction(locale: string): Promise<void> {
       data: { value: { decrement: 8 }, anchorAt: new Date() },
     }),
   ]);
+  await grantAchievement(c.id, "FIRST_SONG");
   revalidatePath(`/${locale}/band`);
 }
 
@@ -697,6 +709,7 @@ export async function performConcertAction(formData: FormData): Promise<void> {
       });
     }
   });
+  await grantAchievement(c.id, "FIRST_CONCERT");
   revalidatePath(`/${locale}/band`);
   revalidatePath(`/${locale}`, "layout");
 }
@@ -765,6 +778,7 @@ export async function recordReleaseAction(formData: FormData): Promise<void> {
       },
     }),
   ]);
+  await grantAchievement(c.id, "FIRST_RELEASE");
   revalidatePath(`/${locale}/band`);
 }
 
@@ -864,6 +878,7 @@ export async function haveChildAction(formData: FormData): Promise<void> {
       },
     },
   });
+  await grantAchievement(parent.id, "PARENT");
   revalidatePath(`/${locale}/relationships`);
 }
 
@@ -919,6 +934,7 @@ export async function buyPropertyAction(formData: FormData): Promise<void> {
       });
     }
   });
+  await grantAchievement(c.id, "HOMEOWNER");
   revalidatePath(`/${locale}/estate`);
   revalidatePath(`/${locale}`, "layout");
 }
@@ -967,6 +983,7 @@ export async function foundBusinessAction(formData: FormData): Promise<void> {
       },
     }),
   ]);
+  await grantAchievement(c.id, "TYCOON");
   revalidatePath(`/${parsed.data.locale}/estate`);
   revalidatePath(`/${parsed.data.locale}`, "layout");
 }
@@ -1152,6 +1169,63 @@ export async function shootMusicVideoAction(formData: FormData): Promise<void> {
       data: { fame: { increment: Math.min(5, quality / 20) } },
     }),
   ]);
+  await grantAchievement(c.id, "FIRST_VIDEO");
+  revalidatePath(`/${locale}/band`);
+}
+
+// ---------------------------------------------------------------------------
+// Fame & media (Faz 10): press releases
+// ---------------------------------------------------------------------------
+
+const MS_PER_GAME_DAY = 24 * 3_600_000;
+
+/**
+ * Publish a press release for the character's band: costs a PR fee, is rate
+ * limited per band, and lifts fame based on the publisher's Media
+ * Manipulation skill. Also lands as an article in the city newspaper.
+ */
+export async function pressReleaseAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const locale = String(formData.get("locale") ?? "en");
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+  const membership = await activeBandMembership(c.id);
+  if (!membership) return;
+  const band = await prisma.band.findUnique({ where: { id: membership.bandId } });
+  if (!band || c.money < PRESS_RELEASE_COST) return;
+
+  const nowGame = worldClock.toGameTime();
+  if (band.lastPressGameAt) {
+    const daysSince = (nowGame.getTime() - band.lastPressGameAt.getTime()) / MS_PER_GAME_DAY;
+    if (daysSince < PRESS_RELEASE_COOLDOWN_GAME_DAYS) return;
+  }
+
+  const mediaSkill = await skillLevelByName(c.id, "Basic Media Manipulation");
+  const boost = pressReleaseFameBoost(mediaSkill);
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: { money: { decrement: PRESS_RELEASE_COST } },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -PRESS_RELEASE_COST, type: TxnType.PURCHASE, memo: `Press release: ${band.name}` },
+    }),
+    prisma.band.update({
+      where: { id: band.id },
+      data: { fame: Math.min(100, band.fame + boost), lastPressGameAt: nowGame },
+    }),
+    prisma.newsArticle.create({
+      data: {
+        cityId: band.cityId,
+        category: NewsCategory.PRESS_RELEASE,
+        headline: `${band.name} teases what comes next`,
+        body: `In a statement to the press, ${band.name} promised new music and bigger shows soon. Local insiders say the buzz is real.`,
+        refId: band.id,
+      },
+    }),
+  ]);
+  await grantAchievement(c.id, "PRESS_DARLING");
   revalidatePath(`/${locale}/band`);
 }
 

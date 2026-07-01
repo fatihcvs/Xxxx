@@ -23,7 +23,10 @@
     "grpSocial": "Social",
     "grpWorld": "World",
     "grpMoney": "Economy",
-    "world": "World & Travel"
+    "world": "World & Travel",
+    "achievements": "Achievements",
+    "awards": "Awards",
+    "news": "Newspaper"
   },
   "skills": {
     "mastersHere": "Masters in your city",
@@ -84,6 +87,24 @@
     "youAreHere": "You are here",
     "localTime": "Local time"
   },
+  "achievements": {
+    "title": "Achievements",
+    "progress": "{earned} of {total} earned"
+  },
+  "news": {
+    "title": "The Daily Stage",
+    "worldDesk": "World desk",
+    "empty": "No news yet — the presses are warming up."
+  },
+  "awards": {
+    "title": "Annual Music Awards",
+    "empty": "No award show has been held yet. The first gala takes place once an in-game year completes.",
+    "showTitle": "{year} Music Awards",
+    "bandOfYear": "Band of the Year",
+    "albumOfYear": "Album of the Year",
+    "songOfYear": "Song of the Year",
+    "artistOfYear": "Artist of the Year"
+  },
   "world": {
     "title": "The World",
     "intro": "{count} cities are waiting for you. Flying costs money and energy and takes real time.",
@@ -138,6 +159,8 @@
     "paydayNote": "Salaries are paid automatically each in-game Friday."
   },
   "band": {
+    "pressRelease": "Press release (§150)",
+    "pressReleaseHint": "One per 14 game days. Media Manipulation skill raises the fame boost.",
     "startBand": "Start a band",
     "startIntro": "Form a band, compose songs, rehearse them and play concerts to build fame.",
     "bandName": "Band name",

@@ -86,6 +86,10 @@ character to hospital; the heartbeat worker admits and discharges them.
 - **Phase 7:** multiple cities, procedural NPC world, admin dashboard, deployment.
 - **Phase 8–9:** 17 genres + stage roles, music videos, fan bases; 19-category
   skill tree with prerequisites and mentors.
+- **Phase 10 (core):** an **achievement engine** (18 trophies hooked into every
+  major system), the in-game **newspaper** (elections, chart leaders, obituaries,
+  awards, press releases), **press releases** driven by the Media Manipulation
+  skill, and **annual music awards** (Band/Album/Song/Artist of the Year).
 - **Phase 13 (core):** a world of **50 real cities in 39 countries** (timezones,
   coordinates), inter-city **flights** (distance-based cost/duration/energy,
   real-time arrival), airports, the World page and a classic page-based UI theme.

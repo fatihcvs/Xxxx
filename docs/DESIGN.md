@@ -120,6 +120,10 @@ Her ekran için: **Amaç · Route/dosya · Yerleşim · Bileşenler · Durumlar 
 - Varlıklar: attribute ikonları (vokal, çekicilik, görünüm, zekâ, bünye, yaratıcılık, el becerisi,
   cazibe), kitap ikonu, saat/ilerleme ikonu.
 
+**C3. Başarımlar** ✅ — `(game)/achievements` (Faz 10)
+- Amaç: 18 başarımlık katalog; kazanılan (🏆 + tarih) / kilitli (🔒, soluk) satırlar,
+  üstte ilerleme satırı ("x / y kazanıldı"). Zebra klasik tablo.
+
 ### D. Dünya
 **D1. Şehir / Harita** ✅ — `(game)/city`
 - Amaç: şehirdeki mekanları listele; "Buraya git"; "Buradasın" rozeti.
@@ -140,6 +144,11 @@ Her ekran için: **Amaç · Route/dosya · Yerleşim · Bileşenler · Durumlar 
   hastanede (kilit).
 - Animasyon: aksiyon sonrası toast + ilgili ölçer/para güncelleme animasyonu.
 - Varlıklar: mekan başlık görseli (tür bazlı), aksiyon ikonları (dinlen, ye, iş, kitap, ders, anahtar/kira).
+
+**D4. Gazete ("Günlük Sahne")** ✅ — `(game)/news` (Faz 10)
+- Amaç: şehir + dünya masası haber akışı (seçim, chart lideri, ünlü ölümü, ödüller,
+  basın bültenleri). Kategori glifli başlık (serif) + gövde + kaynak/saat satırı.
+- Durumlar: boş (matbaa ısınıyor), dolu akış (son 30 haber).
 
 **D3. Dünya & Seyahat** ✅ — `(game)/world` (Faz 13)
 - Amaç: 50 gerçek şehri listele (bayrak + ülke + yerel saat + sakin sayısı) ve uçuş sat.
@@ -172,6 +181,11 @@ Her ekran için: **Amaç · Route/dosya · Yerleşim · Bileşenler · Durumlar 
 - Ekranlar: **Stüdyo/Kayıt** (tracklist seç, single/albüm), **Charts** (şehir/tür/global sıralama tablosu),
   **Ödüller** töreni. Animasyon: chart sıra değişim, satış count-up, ödül reveal.
 - Varlıklar: CD/plak kapağı jeneratörü (özgün, otomatik), chart tablo ikonları, kupa/ödül ikonu.
+
+**F3. Yıllık Ödüller** ✅ — `(game)/awards` (Faz 10)
+- Amaç: yıl bazlı ödül töreni panelleri (🏆 başlık); kategori/kazanan/detay tablosu.
+- Grup sayfasında **Basın bülteni (§150)** butonu: Media Manipulation ün artışını
+  büyütür; 14 oyun günü cooldown (buton her zaman görünür, kural sunucuda).
 
 ### G. Sosyal & Aile ◻︎ (Faz 5)
 **G1. Adres defteri / İlişkiler**, **G2. Mesajlaşma (kutu + konuşma)**, **G3. İlişki profili**

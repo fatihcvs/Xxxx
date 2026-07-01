@@ -14,6 +14,7 @@ const GROUPS: { title: string; items: { href: string; key: string }[] }[] = [
       { href: "/home", key: "home" },
       { href: "/attributes", key: "attributes" },
       { href: "/skills", key: "skills" },
+      { href: "/achievements", key: "achievements" },
     ],
   },
   {
@@ -22,6 +23,7 @@ const GROUPS: { title: string; items: { href: string; key: string }[] }[] = [
       { href: "/career", key: "career" },
       { href: "/band", key: "band" },
       { href: "/charts", key: "charts" },
+      { href: "/awards", key: "awards" },
     ],
   },
   {
@@ -36,6 +38,7 @@ const GROUPS: { title: string; items: { href: string; key: string }[] }[] = [
     items: [
       { href: "/city", key: "city" },
       { href: "/world", key: "world" },
+      { href: "/news", key: "news" },
       { href: "/estate", key: "estate" },
       { href: "/politics", key: "politics" },
     ],

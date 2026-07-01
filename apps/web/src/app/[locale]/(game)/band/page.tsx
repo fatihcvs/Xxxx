@@ -12,6 +12,7 @@ import {
   recordReleaseAction,
   setStageRolesAction,
   shootMusicVideoAction,
+  pressReleaseAction,
 } from "@/app/actions/game";
 
 export default async function BandPage({
@@ -106,7 +107,7 @@ export default async function BandPage({
           <span className="text-xs font-normal text-ink/50">{band.genre?.name}</span>
         </div>
         <div className="panel-body text-sm">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-6">
             <div>
               <div className="text-[11px] text-ink/60">{t("fame")}</div>
               <div className="font-semibold text-brand">{band.fame.toFixed(1)}</div>
@@ -117,6 +118,13 @@ export default async function BandPage({
                 {band.members.map((m) => `${m.character.firstName} (${m.role})`).join(", ")}
               </div>
             </div>
+            {/* PR: press release (Media Manipulation lifts the fame boost) */}
+            <form action={pressReleaseAction} className="ml-auto">
+              <input type="hidden" name="locale" value={locale} />
+              <button type="submit" className="btn-ghost text-xs" title={t("pressReleaseHint")}>
+                {t("pressRelease")}
+              </button>
+            </form>
           </div>
         </div>
       </div>

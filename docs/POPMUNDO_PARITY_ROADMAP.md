@@ -63,11 +63,11 @@ Firemen, Nature & Resources, Paranormal Sciences, Crafting, Miscellaneous.**
 
 ### D. Ün & Medya
 - 🟡 Star value / fame (temel). ◻︎ **Star value'nun groupie/klip/konser başarısına etkisi**.
-- ◻︎ **PR yöneticisi** + **Media Manipulation** yeteneği etkileri.
-- ◻︎ **Gazete/basın**, röportajlar, dedikodu.
-- ◻︎ **Ödül törenleri** (yıllık müzik ödülleri).
+- ✅ **Basın bülteni + Media Manipulation etkisi** (skill ün artışını 1→5 kat büyütür, 14 oyun günü cooldown); ◻︎ ayrı PR yöneticisi rolü.
+- ✅ **Gazete** ("Günlük Sahne"): seçim, chart lideri, ünlü ölümü, ödüller, basın bültenleri; ◻︎ röportaj/dedikodu.
+- ✅ **Ödül törenleri** (yıllık: Yılın Grubu/Albümü/Şarkısı/Sanatçısı + ün/star bonusu).
 - ◻︎ **Fan kulübü**, fan postası.
-- ◻︎ **Başarımlar/kupalar (achievements)** sistemi.
+- ✅ **Başarımlar/kupalar**: 18 başarımlık katalog + idempotent motor; iş/müzik/medya/dünya/politika/yaşam/öğrenme/ekonomi kancaları.
 
 ### E. Ekonomi
 - ✅ Mekanlarda iş + **Cuma maaşı**.
@@ -115,7 +115,7 @@ Firemen, Nature & Resources, Paranormal Sciences, Crafting, Miscellaneous.**
 
 ### L. Sistem & Meta
 - 🟡 VIP (temel: hızlı öğrenme + rozet). ◻︎ **VIP perk seti** (şirket kurma, ekstra slotlar, otomatikler).
-- ◻︎ **Başarımlar** her sistemde.
+- ✅ **Başarımlar** (18 başarım, tüm ana sistemlere kanca); ◻︎ katalog genişletme.
 - ◻︎ **Bildirim/olay akışı** (event feed).
 - ✅ Admin paneli (temel), ✅ i18n TR/EN, 🟡 responsive.
 - ◻︎ **Moderasyon araçları**, kurallar, raporlama.
@@ -154,11 +154,15 @@ Orijinal plan:
 - **Üniversite dereceleri** + sınav + diploma; kitap çeşitliliği.
 - Model: `Skill`(tier, prereq, category), `Mentorship`, `Degree`, `Enrollment`.
 
-### Faz 10 — Ün, Medya & Başarımlar
-- **PR yöneticisi** + Media Manipulation etkileri; **gazete/basın** + röportaj.
-- **Ödül törenleri** (yıllık), **fan kulübü** + fan postası.
-- **Başarımlar/kupalar** motoru (tüm sistemlere kanca).
-- Model: `NewsArticle`, `Award`, `AwardShow`, `FanClub`, `Achievement`, `CharacterAchievement`.
+### 🟡 Faz 10 — Ün, Medya & Başarımlar (ÇEKİRDEK TAMAMLANDI)
+Tamamlanan: **başarım motoru** (18 başarım; iş, grup, şarkı, konser, kayıt, klip,
+chart 1 numarası, uçuş/jetsetter, başkanlık, çocuk, mülk/işletme, §10k, 5★ yetenek,
+5 çalışma, PR, ödül kancaları); **gazete** ("Günlük Sahne": seçim, chart lideri,
+ünlü ölüm ilanı, ödüller, basın bültenleri; şehir + dünya masası); **basın bülteni**
+aksiyonu (Media Manipulation etkili, cooldown'lu); **yıllık ödül töreni** (4 kategori,
+kazananlara ün/star bonusu + haber + başarım). Model: `NewsArticle`, `Award`,
+`AwardShow`, `Achievement`, `CharacterAchievement`.
+Kalan: **fan kulübü + fan postası**, röportaj/dedikodu, ayrı PR yöneticisi rolü.
 
 ### Faz 11 — Ekonomi Derinleştirme
 - **Şirketler**: çalışan alma, ücret, ürün/stok, gelir; VIP ile kurma.

@@ -4,6 +4,7 @@
  * skill/genre/book catalogue. Venue names and all text are original.
  */
 import { PrismaClient, LocaleType } from "@prisma/client";
+import { ACHIEVEMENTS } from "../src/achievements";
 
 const prisma = new PrismaClient();
 
@@ -319,6 +320,15 @@ async function main() {
         data: { title: b.title, skillId: skillByName.get(b.skill)!, price: b.price },
       });
     }
+  }
+
+  // Achievement catalogue (Faz 10).
+  for (const a of ACHIEVEMENTS) {
+    await prisma.achievement.upsert({
+      where: { code: a.code },
+      update: { name: a.name, description: a.description, category: a.category },
+      create: a,
+    });
   }
 
   let venues = 0;

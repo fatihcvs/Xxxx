@@ -1,4 +1,14 @@
-import { prisma, MeterKind, TxnType, LearningState, ReleaseType, PropertyKind } from "@fameworld/db";
+import {
+  prisma,
+  MeterKind,
+  TxnType,
+  LearningState,
+  ReleaseType,
+  PropertyKind,
+  NewsCategory,
+  AwardCategory,
+  grantAchievement,
+} from "@fameworld/db";
 import {
   needsHospital,
   worldClockFromEnv,
@@ -15,6 +25,9 @@ import {
   STALE_FAME_DECAY_PER_WEEK,
   PAYDAY_XP,
   STUDY_XP,
+  STAR_OBITUARY_THRESHOLD,
+  AWARD_BAND_FAME_BONUS,
+  AWARD_STAR_BONUS,
   type MeterState,
 } from "@fameworld/game-engine";
 
@@ -46,6 +59,9 @@ export interface HeartbeatResult {
   electionsResolved: number;
   electionsOpened: number;
   fameDecayed: number;
+  newsPublished: number;
+  achievementsGranted: number;
+  awardShows: number;
 }
 
 /** Land characters whose flight has arrived (Faz 13). */
@@ -119,6 +135,12 @@ async function sweepLearning(now: Date): Promise<number> {
         await tx.characterAttribute.update({ where: { id: intel.id }, data: next });
       }
     });
+    // Learning achievements: a 5-star mastery, and five completed studies.
+    if (task.toLevel >= 5) await grantAchievement(task.characterId, "VIRTUOSO");
+    const completed = await prisma.learningTask.count({
+      where: { characterId: task.characterId, state: LearningState.COMPLETED },
+    });
+    if (completed >= 5) await grantAchievement(task.characterId, "SCHOLAR");
   }
   return due.length;
 }
@@ -285,7 +307,15 @@ async function sweepAging(nowGame: Date): Promise<{ deaths: number; heirsPromote
   // Only player-controlled characters age/die; NPC children are safe until they inherit.
   const characters = await prisma.character.findMany({
     where: { isAlive: true, userId: { not: null } },
-    select: { id: true, userId: true, bornAtGame: true, lastAgedGameAt: true },
+    select: {
+      id: true,
+      userId: true,
+      bornAtGame: true,
+      lastAgedGameAt: true,
+      firstName: true,
+      lastName: true,
+      starValue: true,
+    },
   });
   let deaths = 0;
   let heirsPromoted = 0;
@@ -328,6 +358,19 @@ async function sweepAging(nowGame: Date): Promise<{ deaths: number; heirsPromote
         });
       }
     });
+    // Famous characters make the world news when they pass away.
+    if (c.starValue >= STAR_OBITUARY_THRESHOLD) {
+      const name = `${c.firstName} ${c.lastName}`;
+      const age = clock.gameYearsBetween(c.bornAtGame, nowGame);
+      await prisma.newsArticle.create({
+        data: {
+          category: NewsCategory.OBITUARY,
+          headline: `Music world mourns ${name}`,
+          body: `${name}, a star of the scene, has died at the age of ${age}. Fans around the world are paying tribute.`,
+          refId: c.id,
+        },
+      });
+    }
     deaths += 1;
     if (heir && c.userId) heirsPromoted += 1;
   }
@@ -387,7 +430,10 @@ async function sweepElections(nowGame: Date): Promise<{ resolved: number; opened
 
   const due = await prisma.election.findMany({
     where: { resolved: false, closesAtGame: { lte: nowGame } },
-    include: { candidacies: { orderBy: { votes: "desc" } } },
+    include: {
+      candidacies: { orderBy: { votes: "desc" }, include: { character: true } },
+      city: true,
+    },
   });
   for (const e of due) {
     const winner = e.candidacies[0];
@@ -400,6 +446,19 @@ async function sweepElections(nowGame: Date): Promise<{ resolved: number; opened
         await tx.city.update({ where: { id: e.cityId }, data: { mayorId: winner.characterId } });
       }
     });
+    if (winner) {
+      const name = `${winner.character.firstName} ${winner.character.lastName}`;
+      await grantAchievement(winner.characterId, "MAYOR");
+      await prisma.newsArticle.create({
+        data: {
+          cityId: e.cityId,
+          category: NewsCategory.ELECTION,
+          headline: `${name} elected mayor of ${e.city.name}`,
+          body: `The votes are in: ${name} takes office at ${e.city.name} city hall after winning the election with ${winner.votes} vote(s).`,
+          refId: winner.characterId,
+        },
+      });
+    }
     resolved += 1;
   }
 
@@ -456,11 +515,163 @@ async function sweepBandFame(nowGame: Date): Promise<number> {
 }
 
 /**
+ * Publish a world-desk article when the #1 release changes, and award the
+ * CHART_TOPPER achievement to the leading band's members.
+ */
+async function sweepChartNews(): Promise<number> {
+  const top = await prisma.release.findFirst({
+    where: { active: true, totalSales: { gt: 0 }, chartScore: { gt: 1 } },
+    orderBy: { chartScore: "desc" },
+    include: { band: { include: { members: true } } },
+  });
+  if (!top) return 0;
+
+  const lastChartNews = await prisma.newsArticle.findFirst({
+    where: { category: NewsCategory.CHARTS },
+    orderBy: { createdAt: "desc" },
+  });
+  if (lastChartNews?.refId === top.id) return 0;
+
+  await prisma.newsArticle.create({
+    data: {
+      category: NewsCategory.CHARTS,
+      headline: `"${top.title}" climbs to #1 in the world`,
+      body: `${top.band.name} rule the global chart: "${top.title}" is the best selling record this week with ${top.totalSales} copies sold so far.`,
+      refId: top.id,
+    },
+  });
+  for (const m of top.band.members) {
+    await grantAchievement(m.characterId, "CHART_TOPPER");
+  }
+  return 1;
+}
+
+/** Grant the five-figure fortune achievement to characters holding §10,000+. */
+async function sweepRiches(): Promise<number> {
+  const rich = await prisma.character.findMany({
+    where: {
+      isAlive: true,
+      userId: { not: null },
+      money: { gte: 10_000 },
+      achievements: { none: { achievement: { code: "RICH_10K" } } },
+    },
+    select: { id: true },
+  });
+  let granted = 0;
+  for (const c of rich) {
+    if (await grantAchievement(c.id, "RICH_10K")) granted += 1;
+  }
+  return granted;
+}
+
+/**
+ * Hold the annual music awards once an in-game year completes: Band, Album,
+ * Song and Artist of the Year. Winners gain fame/star value, earn the
+ * AWARD_WINNER achievement and make the world news.
+ */
+async function sweepAwards(nowGame: Date): Promise<number> {
+  const year = nowGame.getUTCFullYear() - 1;
+  // No awards for years before the in-game epoch (default world start: 2000).
+  if (year < 2000) return 0;
+  const existing = await prisma.awardShow.findUnique({ where: { gameYear: year } });
+  if (existing) return 0;
+
+  const [topBand, topArtist, releases] = await Promise.all([
+    prisma.band.findFirst({
+      where: { fame: { gt: 0 } },
+      orderBy: { fame: "desc" },
+      include: { members: true },
+    }),
+    prisma.character.findFirst({
+      where: { isAlive: true, starValue: { gt: 0 } },
+      orderBy: { starValue: "desc" },
+    }),
+    prisma.release.findMany({
+      where: { totalSales: { gt: 0 } },
+      include: { band: { include: { members: true } } },
+    }),
+  ]);
+
+  const ofYear = releases.filter(
+    (r) => clock.toGameTime(r.releasedAt).getUTCFullYear() === year,
+  );
+  const topAlbum = ofYear
+    .filter((r) => r.type === ReleaseType.ALBUM)
+    .sort((a, b) => b.totalSales - a.totalSales)[0];
+  const topSingle = ofYear
+    .filter((r) => r.type === ReleaseType.SINGLE)
+    .sort((a, b) => b.totalSales - a.totalSales)[0];
+
+  if (!topBand && !topArtist && !topAlbum && !topSingle) return 0;
+
+  const show = await prisma.awardShow.create({
+    data: { gameYear: year, heldAtGame: nowGame },
+  });
+
+  const lines: string[] = [];
+  const rewardBand = async (
+    category: AwardCategory,
+    band: { id: string; name: string; fame: number; members: { characterId: string }[] },
+    detail?: string,
+  ) => {
+    await prisma.award.create({
+      data: { showId: show.id, category, bandId: band.id, detail },
+    });
+    await prisma.band.update({
+      where: { id: band.id },
+      data: { fame: Math.min(100, band.fame + AWARD_BAND_FAME_BONUS) },
+    });
+    for (const m of band.members) {
+      await prisma.character.update({
+        where: { id: m.characterId },
+        data: { starValue: { increment: AWARD_STAR_BONUS } },
+      });
+      await grantAchievement(m.characterId, "AWARD_WINNER");
+    }
+  };
+
+  if (topBand) {
+    await rewardBand(AwardCategory.BAND_OF_THE_YEAR, topBand);
+    lines.push(`Band of the Year: ${topBand.name}`);
+  }
+  if (topAlbum) {
+    await rewardBand(AwardCategory.ALBUM_OF_THE_YEAR, topAlbum.band, topAlbum.title);
+    lines.push(`Album of the Year: "${topAlbum.title}" (${topAlbum.band.name})`);
+  }
+  if (topSingle) {
+    await rewardBand(AwardCategory.SONG_OF_THE_YEAR, topSingle.band, topSingle.title);
+    lines.push(`Song of the Year: "${topSingle.title}" (${topSingle.band.name})`);
+  }
+  if (topArtist) {
+    await prisma.award.create({
+      data: { showId: show.id, category: AwardCategory.ARTIST_OF_THE_YEAR, characterId: topArtist.id },
+    });
+    await prisma.character.update({
+      where: { id: topArtist.id },
+      data: { starValue: { increment: AWARD_STAR_BONUS } },
+    });
+    await grantAchievement(topArtist.id, "AWARD_WINNER");
+    lines.push(`Artist of the Year: ${topArtist.firstName} ${topArtist.lastName}`);
+  }
+
+  await prisma.newsArticle.create({
+    data: {
+      category: NewsCategory.AWARDS,
+      headline: `The ${year} music awards: the night's big winners`,
+      body: lines.join(" · "),
+      refId: show.id,
+    },
+  });
+  return 1;
+}
+
+/**
  * Global sweep over the living world. Meters derive from anchors on read, so
  * the heartbeat flips hospitalisation, completes timed learning, pays weekly
  * salaries on in-game Fridays, charges apartment rent, accrues record sales,
- * ages characters (death → heir), pays rental/business income, runs elections
- * and decays the fame of bands that stop releasing.
+ * ages characters (death → heir), pays rental/business income, runs elections,
+ * decays the fame of bands that stop releasing, publishes newspaper articles
+ * and holds the annual music awards.
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
@@ -475,9 +686,15 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const businessProfits = await sweepBusinesses(nowGame);
   const elections = await sweepElections(nowGame);
   const fameDecayed = await sweepBandFame(nowGame);
+  const newsPublished = await sweepChartNews();
+  const achievementsGranted = await sweepRiches();
+  const awardShows = await sweepAwards(nowGame);
   return {
     fameDecayed,
     arrivals,
+    newsPublished,
+    achievementsGranted,
+    awardShows,
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
     discharged: hospital.discharged,

@@ -70,6 +70,7 @@ model City {
   businesses   Business[]
   elections    Election[]
   fanBases     FanBase[]
+  news         NewsArticle[]
 
   @@unique([name, countryId])
 }
@@ -178,6 +179,8 @@ model Character {
   candidacies Candidacy[]
   votes       Vote[]
   stageRoles  CharacterStageRole[]
+  achievements CharacterAchievement[]
+  awards       Award[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -393,12 +396,15 @@ model Band {
   fame    Float  @default(0)
   // In-game time of the last fame-decay check (release-freshness driven).
   lastFameDecayGameAt DateTime?
+  // In-game time of the last press release (PR cooldown).
+  lastPressGameAt DateTime?
 
   members  BandMembership[]
   songs    Song[]
   concerts Concert[]
   releases Release[]
   fanBases FanBase[]
+  awards   Award[]
 
   createdAt DateTime @default(now())
 }
@@ -633,4 +639,85 @@ model CharacterStageRole {
   slot        StageRoleSlot
 
   @@unique([characterId, slot])
+}
+
+// ---------------------------------------------------------------------------
+// Fame, media & achievements (Faz 10)
+// ---------------------------------------------------------------------------
+
+model Achievement {
+  id          String @id @default(cuid())
+  code        String @unique
+  name        String
+  description String
+  category    String
+
+  earnedBy CharacterAchievement[]
+}
+
+model CharacterAchievement {
+  id            String      @id @default(cuid())
+  characterId   String
+  character     Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  earnedAt      DateTime    @default(now())
+
+  @@unique([characterId, achievementId])
+  @@index([characterId])
+}
+
+enum NewsCategory {
+  ELECTION
+  CHARTS
+  CONCERT
+  OBITUARY
+  PRESS_RELEASE
+  AWARDS
+}
+
+// A newspaper article; cityId null = world desk (global news).
+model NewsArticle {
+  id        String       @id @default(cuid())
+  cityId    String?
+  city      City?        @relation(fields: [cityId], references: [id])
+  category  NewsCategory
+  headline  String
+  body      String
+  refId     String? // loose reference (release/band/character) used for dedupe
+  createdAt DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([cityId, createdAt])
+  @@index([category, createdAt])
+}
+
+// Annual music awards: one show per completed in-game year.
+model AwardShow {
+  id         String   @id @default(cuid())
+  gameYear   Int      @unique
+  heldAtGame DateTime
+
+  awards Award[]
+}
+
+enum AwardCategory {
+  BAND_OF_THE_YEAR
+  ALBUM_OF_THE_YEAR
+  SONG_OF_THE_YEAR
+  ARTIST_OF_THE_YEAR
+}
+
+model Award {
+  id          String        @id @default(cuid())
+  showId      String
+  show        AwardShow     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  category    AwardCategory
+  bandId      String?
+  band        Band?         @relation(fields: [bandId], references: [id])
+  characterId String?
+  character   Character?    @relation(fields: [characterId], references: [id])
+  detail      String? // e.g. the winning release/song title
+
+  @@unique([showId, category])
 }

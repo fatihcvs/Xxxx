@@ -23,7 +23,10 @@
     "grpSocial": "Sosyal",
     "grpWorld": "Dünya",
     "grpMoney": "Ekonomi",
-    "world": "Dünya & Seyahat"
+    "world": "Dünya & Seyahat",
+    "achievements": "Başarımlar",
+    "awards": "Ödüller",
+    "news": "Gazete"
   },
   "skills": {
     "mastersHere": "Şehrindeki ustalar",
@@ -84,6 +87,24 @@
     "youAreHere": "Buradasın",
     "localTime": "Yerel saat"
   },
+  "achievements": {
+    "title": "Başarımlar",
+    "progress": "{total} başarımdan {earned} tanesi kazanıldı"
+  },
+  "news": {
+    "title": "Günlük Sahne",
+    "worldDesk": "Dünya masası",
+    "empty": "Henüz haber yok — matbaa ısınıyor."
+  },
+  "awards": {
+    "title": "Yıllık Müzik Ödülleri",
+    "empty": "Henüz ödül töreni yapılmadı. İlk gala, bir oyun yılı tamamlanınca düzenlenir.",
+    "showTitle": "{year} Müzik Ödülleri",
+    "bandOfYear": "Yılın Grubu",
+    "albumOfYear": "Yılın Albümü",
+    "songOfYear": "Yılın Şarkısı",
+    "artistOfYear": "Yılın Sanatçısı"
+  },
   "world": {
     "title": "Dünya",
     "intro": "{count} şehir seni bekliyor. Uçmak para ve enerjiye mal olur, gerçek zaman alır.",
@@ -138,6 +159,8 @@
     "paydayNote": "Maaşlar her oyun-içi Cuma otomatik ödenir."
   },
   "band": {
+    "pressRelease": "Basın bülteni (§150)",
+    "pressReleaseHint": "14 oyun gününde bir. Medya Manipülasyonu yeteneği ün artışını yükseltir.",
     "startBand": "Grup kur",
     "startIntro": "Bir grup kur, şarkı bestele, prova yap ve konser vererek ün kazan.",
     "bandName": "Grup adı",
