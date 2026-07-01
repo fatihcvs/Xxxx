@@ -23,6 +23,10 @@ import {
   inheritedAttributeLevel,
   businessProfitForWeek,
   vipLearningMultiplier,
+  GENRES,
+  jamCeiling,
+  stageRoleFactor,
+  roleAttribute,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -144,7 +148,7 @@ describe("in-game calendar helpers", () => {
 describe("music performance", () => {
   it("has the expected stage roles", () => {
     expect(STAGE_ROLES).toContain("Vocalist");
-    expect(STAGE_ROLES.length).toBe(5);
+    expect(STAGE_ROLES.length).toBe(8);
   });
 
   it("returns 0 for an empty repertoire", () => {
@@ -219,5 +223,32 @@ describe("business & VIP", () => {
   it("VIP learns faster", () => {
     expect(vipLearningMultiplier(true)).toBeLessThan(vipLearningMultiplier(false));
     expect(vipLearningMultiplier(false)).toBe(1);
+  });
+});
+
+describe("music deepening (Faz 8)", () => {
+  it("has the full genre roster", () => {
+    expect(GENRES.length).toBe(17);
+    expect(GENRES).toContain("Jazz");
+  });
+
+  it("jam ceiling scales from 50% (no skill) to 100% (5 stars)", () => {
+    expect(jamCeiling(0)).toBe(50);
+    expect(jamCeiling(5)).toBe(100);
+    expect(jamCeiling(10)).toBe(100); // clamped
+  });
+
+  it("stage role factor weights primary over secondary", () => {
+    const highPrimary = stageRoleFactor(25, 0);
+    const highSecondary = stageRoleFactor(0, 25);
+    expect(highPrimary).toBeGreaterThan(highSecondary);
+    expect(stageRoleFactor(0, 0)).toBeCloseTo(0.6, 5);
+    expect(stageRoleFactor(25, 25)).toBeCloseTo(1.0, 5);
+  });
+
+  it("maps roles to attributes", () => {
+    expect(roleAttribute("Vocalist")).toBe("vocals");
+    expect(roleAttribute("Guitarist")).toBe("dexterity");
+    expect(roleAttribute("Dancer")).toBe("sexAppeal");
   });
 });

@@ -166,6 +166,7 @@ model Character {
   mayoralCities City[]     @relation("Mayor")
   candidacies Candidacy[]
   votes       Vote[]
+  stageRoles  CharacterStageRole[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -573,4 +574,24 @@ model Vote {
   candidacy   Candidacy @relation(fields: [candidacyId], references: [id], onDelete: Cascade)
 
   @@unique([electionId, voterId])
+}
+
+// ---------------------------------------------------------------------------
+// Music deepening (Faz 8)
+// ---------------------------------------------------------------------------
+
+enum StageRoleSlot {
+  PRIMARY
+  SECONDARY
+}
+
+// A character's chosen stage roles (primary weighted 80%, secondary 20%).
+model CharacterStageRole {
+  id          String        @id @default(cuid())
+  characterId String
+  character   Character     @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  role        String // matches game-engine StageRole
+  slot        StageRoleSlot
+
+  @@unique([characterId, slot])
 }

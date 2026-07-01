@@ -2,6 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma, LocaleType } from "@fameworld/db";
+import { STAGE_ROLES } from "@fameworld/game-engine";
 import {
   createBandAction,
   composeSongAction,
@@ -9,6 +10,7 @@ import {
   performConcertAction,
   leaveBandAction,
   recordReleaseAction,
+  setStageRolesAction,
 } from "@/app/actions/game";
 
 export default async function BandPage({
@@ -87,6 +89,12 @@ export default async function BandPage({
   });
   const canPlay = band.songs.length > 0 && venues.length > 0 && !character.hospitalizedAt;
 
+  const myRoles = await prisma.characterStageRole.findMany({
+    where: { characterId: character.id },
+  });
+  const primaryRole = myRoles.find((r) => r.slot === "PRIMARY")?.role ?? STAGE_ROLES[0];
+  const secondaryRole = myRoles.find((r) => r.slot === "SECONDARY")?.role ?? STAGE_ROLES[1];
+
   return (
     <div className="space-y-4">
       {/* Band header */}
@@ -108,6 +116,38 @@ export default async function BandPage({
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Stage roles (primary 80% / secondary 20% of concert performance) */}
+      <div className="panel">
+        <div className="panel-header">{t("stageRoles")}</div>
+        <div className="panel-body">
+          <p className="mb-2 text-xs text-ink/50">{t("stageRolesHint")}</p>
+          <form action={setStageRolesAction} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="locale" value={locale} />
+            <div>
+              <label className="block text-xs mb-1 text-ink/70">{t("primaryRole")}</label>
+              <select name="primary" className="field" defaultValue={primaryRole}>
+                {STAGE_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs mb-1 text-ink/70">{t("secondaryRole")}</label>
+              <select name="secondary" className="field" defaultValue={secondaryRole}>
+                {STAGE_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="btn-ghost">{t("saveRoles")}</button>
+          </form>
         </div>
       </div>
 

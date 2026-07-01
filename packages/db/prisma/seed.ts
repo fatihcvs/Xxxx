@@ -25,7 +25,11 @@ const SKILLS: Array<{ name: string; category: string }> = [
   { name: "Basic Business", category: "business" },
 ];
 
-const GENRES = ["Rock", "Pop", "Electronic", "Jazz"];
+const GENRES = [
+  "African", "Blues", "Classical", "Country & Western", "Electronica", "Flamenco",
+  "Heavy Metal", "Hip Hop", "Jazz", "Latin", "Modern Rock", "Pop", "Punk Rock",
+  "Reggae", "Rhythm & Blues", "Rock", "World",
+];
 
 const CITIES: Array<{ name: string; reach: number }> = [
   { name: "Startown", reach: 8000 },

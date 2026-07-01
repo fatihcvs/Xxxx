@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind, StageRoleSlot } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -18,6 +18,10 @@ import {
   performanceQuality,
   REHEARSAL_PER_SESSION,
   STAGE_ROLES,
+  jamCeiling,
+  stageRoleFactor,
+  roleAttribute,
+  type StageRole,
   inheritedAttributeLevel,
   vipLearningMultiplier,
   MAX_TAX_RATE,
@@ -481,7 +485,14 @@ export async function rehearseSongAction(formData: FormData): Promise<void> {
   const song = await prisma.song.findUnique({ where: { id: songId } });
   if (!song || song.bandId !== membership.bandId) return;
 
-  const next = Math.min(100, song.rehearsal + REHEARSAL_PER_SESSION);
+  // The band's genre skill sets the jam ceiling (no skill caps at 50%, 5 stars = 100%).
+  const band = await prisma.band.findUnique({
+    where: { id: membership.bandId },
+    include: { genre: true },
+  });
+  const genreLevel = band?.genre ? await skillLevelByName(c.id, band.genre.name) : 0;
+  const ceiling = jamCeiling(genreLevel);
+  const next = Math.min(ceiling, song.rehearsal + REHEARSAL_PER_SESSION);
   await prisma.$transaction([
     prisma.song.update({ where: { id: songId }, data: { rehearsal: next } }),
     prisma.characterMeter.update({
@@ -527,9 +538,11 @@ export async function performConcertAction(formData: FormData): Promise<void> {
   if (!city) return;
 
   const showmanship = await skillLevelByName(c.id, "Basic Showmanship");
+  const roleFactor = await stageRoleFactorForCharacter(c.id);
   const quality = performanceQuality(
     band.songs.map((s) => ({ quality: s.quality, rehearsal: s.rehearsal })),
     showmanship,
+    roleFactor,
   );
 
   const outcome = runConcert({
@@ -943,4 +956,62 @@ export async function goVipAction(locale: string): Promise<void> {
     prisma.user.update({ where: { id: userId }, data: { vipUntil } }),
   ]);
   revalidatePath(`/${locale}`, "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Music deepening (Faz 8): stage roles
+// ---------------------------------------------------------------------------
+
+async function attributeLevel(characterId: string, attribute: string): Promise<number> {
+  const a = await prisma.characterAttribute.findUnique({
+    where: { characterId_attribute: { characterId, attribute } },
+  });
+  return a?.level ?? 0;
+}
+
+/** Concert role multiplier from the character's chosen stage roles (0.6..1.0). */
+async function stageRoleFactorForCharacter(characterId: string): Promise<number> {
+  const roles = await prisma.characterStageRole.findMany({ where: { characterId } });
+  if (roles.length === 0) return 0.85; // neutral default until roles are chosen
+  const primary = roles.find((r) => r.slot === StageRoleSlot.PRIMARY);
+  const secondary = roles.find((r) => r.slot === StageRoleSlot.SECONDARY);
+  const pStars = primary
+    ? await attributeLevel(characterId, roleAttribute(primary.role as StageRole))
+    : 0;
+  const sStars = secondary
+    ? await attributeLevel(characterId, roleAttribute(secondary.role as StageRole))
+    : 0;
+  return stageRoleFactor(pStars, sStars);
+}
+
+const stageRolesSchema = z.object({
+  primary: z.enum(STAGE_ROLES),
+  secondary: z.enum(STAGE_ROLES),
+  locale: z.string().default("en"),
+});
+
+/** Choose a primary and secondary stage role (must differ). */
+export async function setStageRolesAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = stageRolesSchema.safeParse({
+    primary: formData.get("primary"),
+    secondary: formData.get("secondary"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success || parsed.data.primary === parsed.data.secondary) return;
+  const c = await loadLivingCharacter(userId);
+
+  await prisma.$transaction([
+    prisma.characterStageRole.upsert({
+      where: { characterId_slot: { characterId: c.id, slot: StageRoleSlot.PRIMARY } },
+      update: { role: parsed.data.primary },
+      create: { characterId: c.id, slot: StageRoleSlot.PRIMARY, role: parsed.data.primary },
+    }),
+    prisma.characterStageRole.upsert({
+      where: { characterId_slot: { characterId: c.id, slot: StageRoleSlot.SECONDARY } },
+      update: { role: parsed.data.secondary },
+      create: { characterId: c.id, slot: StageRoleSlot.SECONDARY, role: parsed.data.secondary },
+    }),
+  ]);
+  revalidatePath(`/${parsed.data.locale}/band`);
 }
