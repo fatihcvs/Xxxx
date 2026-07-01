@@ -10,6 +10,13 @@ running while you are offline.
 > and generates song **titles** procedurally (never lyrics). It is not
 > affiliated with, and copies no assets/text/trademarks from, any existing game.
 
+## Design
+
+All UI/UX — every screen, component, state, animation and required asset across
+all phases — is specified in **[`docs/DESIGN.md`](docs/DESIGN.md)**. Any design
+tool or designer should read that file first. All visuals must be **100%
+original** (no assets, logo, wordmark or icons copied from any existing game).
+
 ## Stack
 
 - **Next.js 15** (App Router, React 19, TypeScript) + **Tailwind CSS**
