@@ -6,10 +6,10 @@ export default {
     extend: {
       colors: {
         panel: "#ffffff",
-        ink: "#1f2430",
-        brand: "#7c3aed",
-        brandDark: "#5b21b6",
-        soft: "#f4f2f8",
+        ink: "#2b3038",
+        brand: "#5b6ea8", // calm slate-blue accent (easy on the eyes)
+        brandDark: "#465684",
+        soft: "#eaeef3", // soft blue-grey background
       },
     },
   },

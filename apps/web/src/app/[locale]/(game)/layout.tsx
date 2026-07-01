@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getCharacterForUser } from "@/lib/character";
@@ -22,14 +22,26 @@ export default async function GameLayout({
   const character = await getCharacterForUser(session.user.id);
   if (!character) redirect(`/${locale}/create`);
 
+  const t = await getTranslations("app");
+
   return (
-    <div className="mx-auto max-w-5xl p-4">
-      <StatusBar character={character} />
-      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
-        <aside>
-          <NavMenu locale={locale} />
-        </aside>
-        <section>{children}</section>
+    <div className="min-h-screen">
+      {/* Wordmark band */}
+      <div className="bg-brand text-white">
+        <div className="mx-auto max-w-5xl px-4 py-2.5 text-center">
+          <span className="text-lg font-extrabold tracking-tight">{t("name")}</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-5xl p-4">
+        <StatusBar character={character} />
+        {/* Content on the left, grouped navigation sidebar on the right (classic layout). */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_210px] gap-4">
+          <section className="order-2 md:order-1">{children}</section>
+          <aside className="order-1 md:order-2">
+            <NavMenu locale={locale} />
+          </aside>
+        </div>
       </div>
     </div>
   );

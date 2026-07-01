@@ -216,9 +216,17 @@ model Skill {
   name     String @unique
   category String // matches game-engine SkillCategory
   maxLevel Int    @default(20)
+  tier     Int    @default(1) // 1 = basic, 2+ = advanced
+
+  // Prerequisite: must reach PREREQ_MIN_LEVEL in this skill before learning.
+  prereqSkillId String?
+  prereq        Skill?  @relation("SkillTree", fields: [prereqSkillId], references: [id])
+  unlocks       Skill[] @relation("SkillTree")
 
   charSkills CharacterSkill[]
   books      Book[]
+
+  @@index([category, tier])
 }
 
 model CharacterSkill {
@@ -284,6 +292,8 @@ model LearningTask {
   startedAt   DateTime      @default(now())
   finishesAt  DateTime
   state       LearningState @default(IN_PROGRESS)
+  // Optional mentor teaching this task (faster than self-study).
+  masterId    String?
 
   @@index([state, finishesAt])
 }

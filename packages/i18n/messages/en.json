@@ -15,8 +15,21 @@
     "estate": "Estate & Business",
     "politics": "Politics",
     "finances": "Finances",
+    "skills": "Skills",
     "settings": "Settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "grpCharacter": "Character",
+    "grpCareer": "Career",
+    "grpSocial": "Social",
+    "grpWorld": "World",
+    "grpMoney": "Economy"
+  },
+  "skills": {
+    "mastersHere": "Masters in your city",
+    "noMasters": "No masters to learn from here right now.",
+    "learn": "Learn",
+    "masterHint": "Learning from a master is faster than studying alone.",
+    "catalogue": "Skill catalogue"
   },
   "auth": {
     "login": "Log in",

@@ -15,6 +15,12 @@ export type SkillCategory =
 
 export const MAX_SKILL_LEVEL = 20;
 
+/** Stars required in a prerequisite skill before an advanced skill can be learned. */
+export const PREREQ_MIN_LEVEL = 4;
+
+/** Learning-time multiplier when taught by a master/mentor (<1 = faster). */
+export const MENTOR_SPEED_FACTOR = 0.5;
+
 /**
  * Real hours to learn from `level` to `level + 1`.
  * Higher intelligence (0..MAX_STAR) reduces the time, down to a floor.

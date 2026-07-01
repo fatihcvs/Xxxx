@@ -13,6 +13,8 @@ import {
   needsHospital,
   learnHours,
   learningFinishesAt,
+  PREREQ_MIN_LEVEL,
+  MENTOR_SPEED_FACTOR,
   composeSong,
   runConcert,
   performanceQuality,
@@ -245,6 +247,16 @@ async function hasActiveLearning(characterId: string): Promise<boolean> {
   return !!active;
 }
 
+/** True unless the skill has a prerequisite the character has not raised to PREREQ_MIN_LEVEL. */
+async function prereqMet(characterId: string, skillId: string): Promise<boolean> {
+  const skill = await prisma.skill.findUnique({ where: { id: skillId } });
+  if (!skill?.prereqSkillId) return true;
+  const prereq = await prisma.characterSkill.findUnique({
+    where: { characterId_skillId: { characterId, skillId: skill.prereqSkillId } },
+  });
+  return (prereq?.level ?? 0) >= PREREQ_MIN_LEVEL;
+}
+
 const studySchema = z.object({ bookId: z.string(), locale: z.string() });
 
 /** Start a timed study session from an owned book (one level), completed by the worker. */
@@ -262,6 +274,7 @@ export async function studyBookAction(formData: FormData): Promise<void> {
     include: { book: true },
   });
   if (!owned) return;
+  if (!(await prereqMet(c.id, owned.book.skillId))) return;
 
   const current = await prisma.characterSkill.findUnique({
     where: { characterId_skillId: { characterId: c.id, skillId: owned.book.skillId } },
@@ -304,6 +317,7 @@ export async function enrollCourseAction(formData: FormData): Promise<void> {
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course || c.money < course.fee) return;
+  if (!(await prereqMet(c.id, course.skillId))) return;
 
   const current = await prisma.characterSkill.findUnique({
     where: { characterId_skillId: { characterId: c.id, skillId: course.skillId } },
@@ -1068,4 +1082,65 @@ export async function shootMusicVideoAction(formData: FormData): Promise<void> {
     }),
   ]);
   revalidatePath(`/${locale}/band`);
+}
+
+// ---------------------------------------------------------------------------
+// Skill trees & education (Faz 9): learning from a master/mentor
+// ---------------------------------------------------------------------------
+
+const masterLearnSchema = z.object({
+  masterId: z.string(),
+  skillId: z.string(),
+  locale: z.string().default("en"),
+});
+const MASTER_MIN_LEVEL = 3;
+
+/** Learn a skill from a master in the same city (faster than self-study). */
+export async function learnFromMasterAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = masterLearnSchema.safeParse({
+    masterId: formData.get("masterId"),
+    skillId: formData.get("skillId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const { masterId, skillId, locale } = parsed.data;
+
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || masterId === c.id || (await hasActiveLearning(c.id))) return;
+  if (!(await prereqMet(c.id, skillId))) return;
+
+  const master = await prisma.character.findUnique({ where: { id: masterId } });
+  if (!master || !master.isAlive || master.currentCityId !== c.currentCityId) return;
+
+  const [masterSkill, current, skill] = await Promise.all([
+    prisma.characterSkill.findUnique({
+      where: { characterId_skillId: { characterId: masterId, skillId } },
+    }),
+    prisma.characterSkill.findUnique({
+      where: { characterId_skillId: { characterId: c.id, skillId } },
+    }),
+    prisma.skill.findUnique({ where: { id: skillId } }),
+  ]);
+  const fromLevel = current?.level ?? 0;
+  const masterLevel = masterSkill?.level ?? 0;
+  // The master must know the skill well and be ahead of the student.
+  if (masterLevel < MASTER_MIN_LEVEL || masterLevel <= fromLevel) return;
+  if (skill && fromLevel >= skill.maxLevel) return;
+
+  const intel = await intelligenceLevel(c.id);
+  const hours =
+    learnHours(fromLevel, intel) * MENTOR_SPEED_FACTOR * vipLearningMultiplier(await isVip(userId));
+  await prisma.learningTask.create({
+    data: {
+      characterId: c.id,
+      skillId,
+      fromLevel,
+      toLevel: fromLevel + 1,
+      masterId,
+      finishesAt: learningFinishesAt(hours),
+    },
+  });
+  revalidatePath(`/${locale}/skills`);
+  revalidatePath(`/${locale}`, "layout");
 }

@@ -123,7 +123,13 @@ Firemen, Nature & Resources, Paranormal Sciences, Crafting, Miscellaneous.**
 
 Sıra bağımlılık + değer önceliğine göre. Her faz: şema + engine + worker + UI + i18n + test + commit.
 
-### Faz 8 — Müzik Derinleştirme (öncelik #1, oyunun kalbi)
+### ✅ Faz 8 — Müzik Derinleştirme (TAMAMLANDI)
+Tamamlanan: 17 tür; tür + 2 sahne rolü (%80/%20) + konser rol faktörü; genre-bağlı
+jam tavanı (%50–100); müzik klibi (satış/ün etkisi); yayın takvimi → fame decay;
+şehir bazlı fan tabanı. Kalan (sonraki müzik alt-fazı): enstrüman 4-yıldız kapısı
+derinliği, radyo, turne, plak sözleşmeleri.
+
+Orijinal plan:
 - **Tür + 2 sahne rolü** (primary %80 / secondary %20) seçimi; karaktere/banda bağla.
 - **Enstrüman & rol hiyerarşisi** + **4-yıldız geçiş kapısı** (Basic → ileri).
 - **17 tür** + genre skill'leri; **jam/prova yüzdesi = genre skill** (%50–%100).
@@ -133,7 +139,12 @@ Sıra bağımlılık + değer önceliğine göre. Her faz: şema + engine + work
 - **Groupie'ler** (star value'ya bağlı), **turne** iskeleti.
 - Model: `StageRole`, `Genre`(17), `CharacterStageRole`, `GenreSkill`, `MusicVideo`, `FanBaseCity`, `Groupie`, `Tour`.
 
-### Faz 9 — Yetenek Ağaçları & Eğitim (tam katalog)
+### ✅ Faz 9 — Yetenek Ağaçları & Eğitim (TAMAMLANDI)
+Tamamlanan: 19 kategoriye yayılmış geniş skill kataloğu; 5-yıldız + Basic→ileri
+**önkoşul** zorlaması (prereq 4★); **usta/mentor**tan hızlı öğrenme; Skills katalog
+sayfası (ağaç + kilit + şehirdeki ustalar). Kalan: üniversite dereceleri/sınav/diploma.
+
+Orijinal plan:
 - **19 kategori** + **5-yıldız (0–5)** model + **Basic→ileri önkoşullar**.
 - Büyük **skill kataloğu** (seed), kademeli öğrenme süreleri.
 - **Usta/Mentor** sistemi (yüksek seviyeli karakterden öğren, karşılıklı).

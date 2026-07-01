@@ -7,22 +7,57 @@ import { PrismaClient, LocaleType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const SKILLS: Array<{ name: string; category: string }> = [
+// Skill catalogue across the 19 categories, with basic->advanced prerequisites.
+type SkillDef = { name: string; category: string; tier?: number; prereq?: string };
+const SKILLS: SkillDef[] = [
+  // creative (composing / lyrics)
   { name: "Basic Composing", category: "creative" },
+  { name: "Advanced Composing", category: "creative", tier: 2, prereq: "Basic Composing" },
   { name: "Basic Lyrics", category: "creative" },
-  { name: "Basic Showmanship", category: "creative" },
-  { name: "Dancing", category: "creative" },
-  { name: "Guitar", category: "instrument" },
-  { name: "Bass", category: "instrument" },
-  { name: "Drums", category: "instrument" },
-  { name: "Keyboards", category: "instrument" },
-  { name: "Singing", category: "instrument" },
-  { name: "Rock", category: "genre" },
-  { name: "Pop", category: "genre" },
-  { name: "Electronic", category: "genre" },
-  { name: "Jazz", category: "genre" },
-  { name: "Basic Media Manipulation", category: "media" },
+  { name: "Advanced Lyrics", category: "creative", tier: 2, prereq: "Basic Lyrics" },
+  // musical instruments
+  { name: "Basic String Instruments", category: "instrument" },
+  { name: "Electric Guitar", category: "instrument", tier: 2, prereq: "Basic String Instruments" },
+  { name: "Bass Guitar", category: "instrument", tier: 2, prereq: "Basic String Instruments" },
+  { name: "Acoustic Guitar", category: "instrument", tier: 2, prereq: "Basic String Instruments" },
+  { name: "Basic Percussion", category: "instrument" },
+  { name: "Drums", category: "instrument", tier: 2, prereq: "Basic Percussion" },
+  { name: "Basic Keys", category: "instrument" },
+  { name: "Piano", category: "instrument", tier: 2, prereq: "Basic Keys" },
+  { name: "Keyboards", category: "instrument", tier: 2, prereq: "Basic Keys" },
+  { name: "Basic Singing", category: "instrument" },
+  { name: "Professional Singing", category: "instrument", tier: 2, prereq: "Basic Singing" },
+  // stage & performance
+  { name: "Basic Showmanship", category: "stage" },
+  { name: "Advanced Showmanship", category: "stage", tier: 2, prereq: "Basic Showmanship" },
+  { name: "Basic Dancing", category: "stage" },
+  { name: "Professional Dancing", category: "stage", tier: 2, prereq: "Basic Dancing" },
+  // social / sexual
+  { name: "Basic Social Skills", category: "social" },
+  { name: "Advanced Social Skills", category: "social", tier: 2, prereq: "Basic Social Skills" },
+  { name: "Basic Sex Appeal", category: "sexual" },
+  // business / media
   { name: "Basic Business", category: "business" },
+  { name: "Advanced Business", category: "business", tier: 2, prereq: "Basic Business" },
+  { name: "Basic Media Manipulation", category: "media" },
+  // criminal / police
+  { name: "Basic Theft", category: "criminal" },
+  { name: "Advanced Theft", category: "criminal", tier: 2, prereq: "Basic Theft" },
+  { name: "Basic Policing", category: "police" },
+  // medicine / sports / science
+  { name: "Basic Medicine", category: "medicine" },
+  { name: "Advanced Medicine", category: "medicine", tier: 2, prereq: "Basic Medicine" },
+  { name: "Basic Fitness", category: "sports" },
+  { name: "Basic Science", category: "science" },
+  // spiritual / artistic / firemen / nature / paranormal / crafting / misc
+  { name: "Basic Faith", category: "spiritual" },
+  { name: "Basic Art", category: "artistic" },
+  { name: "Basic Firefighting", category: "firemen" },
+  { name: "Basic Foraging", category: "nature" },
+  { name: "Basic Paranormal", category: "paranormal" },
+  { name: "Basic Crafting", category: "crafting" },
+  { name: "Cooking", category: "misc" },
+  { name: "Driving", category: "misc" },
 ];
 
 const GENRES = [
@@ -119,14 +154,29 @@ async function main() {
     create: { name: "Fameworld", code: "FWL" },
   });
 
+  // The 17 genres double as tier-1 genre skills (drive the jam ceiling).
+  const allSkills: SkillDef[] = [
+    ...SKILLS,
+    ...GENRES.map((g) => ({ name: g, category: "genre", tier: 1 } as SkillDef)),
+  ];
+
   const skillByName = new Map<string, string>();
-  for (const s of SKILLS) {
+  // Pass 1: create/update every skill (5-star cap).
+  for (const s of allSkills) {
     const rec = await prisma.skill.upsert({
       where: { name: s.name },
-      update: { category: s.category },
-      create: { name: s.name, category: s.category },
+      update: { category: s.category, tier: s.tier ?? 1, maxLevel: 5 },
+      create: { name: s.name, category: s.category, tier: s.tier ?? 1, maxLevel: 5 },
     });
     skillByName.set(s.name, rec.id);
+  }
+  // Pass 2: wire up prerequisites now that all ids exist.
+  for (const s of allSkills) {
+    if (!s.prereq) continue;
+    await prisma.skill.update({
+      where: { id: skillByName.get(s.name)! },
+      data: { prereqSkillId: skillByName.get(s.prereq)! },
+    });
   }
   for (const g of GENRES) {
     await prisma.genre.upsert({ where: { name: g }, update: {}, create: { name: g } });
@@ -137,7 +187,9 @@ async function main() {
     { title: "Composing for Beginners", skill: "Basic Composing", price: 120 },
     { title: "Writing Lyrics", skill: "Basic Lyrics", price: 120 },
     { title: "Owning the Stage", skill: "Basic Showmanship", price: 150 },
-    { title: "Six Strings", skill: "Guitar", price: 100 },
+    { title: "Six Strings", skill: "Basic String Instruments", price: 100 },
+    { title: "Keys & Chords", skill: "Basic Keys", price: 100 },
+    { title: "Find Your Voice", skill: "Basic Singing", price: 100 },
     { title: "Media Handbook", skill: "Basic Media Manipulation", price: 100 },
   ];
   for (const b of bookDefs) {

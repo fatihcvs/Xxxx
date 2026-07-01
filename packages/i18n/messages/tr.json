@@ -15,8 +15,21 @@
     "estate": "Mülk & İşletme",
     "politics": "Politika",
     "finances": "Finans",
+    "skills": "Yetenekler",
     "settings": "Ayarlar",
-    "logout": "Çıkış yap"
+    "logout": "Çıkış yap",
+    "grpCharacter": "Karakter",
+    "grpCareer": "Kariyer",
+    "grpSocial": "Sosyal",
+    "grpWorld": "Dünya",
+    "grpMoney": "Ekonomi"
+  },
+  "skills": {
+    "mastersHere": "Şehrindeki ustalar",
+    "noMasters": "Şu an öğrenebileceğin usta yok.",
+    "learn": "Öğren",
+    "masterHint": "Bir ustadan öğrenmek, tek başına çalışmaktan hızlıdır.",
+    "catalogue": "Yetenek kataloğu"
   },
   "auth": {
     "login": "Giriş yap",

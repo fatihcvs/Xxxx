@@ -11,12 +11,13 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Classic page-based panel look */
+/* Classic page-based panel look: white card with a soft grey header bar */
 .panel {
   @apply bg-panel rounded-md border border-black/10 shadow-sm;
 }
 .panel-header {
-  @apply px-4 py-2 border-b border-black/10 font-semibold text-sm bg-black/[0.02] rounded-t-md;
+  @apply px-4 py-2 border-b border-black/10 font-semibold text-sm text-ink/70 rounded-t-md;
+  background: linear-gradient(#f3f5f9, #e7ebf2);
 }
 .panel-body {
   @apply p-4;
