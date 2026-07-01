@@ -8,6 +8,7 @@ import {
   rehearseSongAction,
   performConcertAction,
   leaveBandAction,
+  recordReleaseAction,
 } from "@/app/actions/game";
 
 export default async function BandPage({
@@ -36,6 +37,7 @@ export default async function BandPage({
           members: { include: { character: true } },
           songs: { orderBy: { composedAt: "desc" } },
           concerts: { orderBy: { scheduledAt: "desc" }, take: 5, include: { locale: true } },
+          releases: { orderBy: { releasedAt: "desc" }, include: { tracks: true } },
         },
       },
     },
@@ -145,6 +147,74 @@ export default async function BandPage({
           )}
         </div>
       </div>
+
+      {/* Record a release */}
+      {band.songs.length > 0 && (
+        <div className="panel">
+          <div className="panel-header">{t("recordTitle")}</div>
+          <div className="panel-body">
+            <p className="mb-3 text-xs text-ink/50">{t("recordHint")}</p>
+            <form action={recordReleaseAction} className="space-y-3">
+              <input type="hidden" name="locale" value={locale} />
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="block text-xs mb-1 text-ink/70">{t("releaseTitle")}</label>
+                  <input name="title" required maxLength={80} className="field" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1 text-ink/70">{t("format")}</label>
+                  <select name="type" className="field" defaultValue="SINGLE">
+                    <option value="SINGLE">{t("single")}</option>
+                    <option value="ALBUM">{t("album")}</option>
+                  </select>
+                </div>
+              </div>
+              <fieldset className="border border-black/10 rounded p-2">
+                <legend className="px-1 text-xs text-ink/60">{t("pickTracks")}</legend>
+                <div className="grid sm:grid-cols-2 gap-1">
+                  {band.songs.map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="songIds" value={s.id} />
+                      <span>
+                        {s.title} <span className="text-ink/40">({s.quality})</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <button className="btn" disabled={character.hospitalizedAt !== null}>
+                {t("record")}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Releases */}
+      {band.releases.length > 0 && (
+        <div className="panel">
+          <div className="panel-header">{t("releases")}</div>
+          <div className="panel-body">
+            <ul className="divide-y divide-black/5 text-sm">
+              {band.releases.map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-2">
+                  <div>
+                    <span className="font-medium">{r.title}</span>{" "}
+                    <span className="text-[11px] text-ink/50">
+                      {r.type.toLowerCase()} · {r.tracks.length} {t("tracks")}
+                    </span>
+                  </div>
+                  <span className="text-ink/60">
+                    {t("sales")} {r.totalSales.toLocaleString(locale)} · {t("score")}{" "}
+                    {r.chartScore.toFixed(0)}
+                    {!r.active && ` · ${t("retired")}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Play a concert */}
       <div className="panel">

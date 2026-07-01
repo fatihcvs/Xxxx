@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/attributes", key: "attributes" },
   { href: "/career", key: "career" },
   { href: "/band", key: "band" },
+  { href: "/charts", key: "charts" },
   { href: "/finances", key: "finances" },
 ] as const;
 

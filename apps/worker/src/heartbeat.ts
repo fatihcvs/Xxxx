@@ -1,4 +1,4 @@
-import { prisma, MeterKind, TxnType, LearningState } from "@fameworld/db";
+import { prisma, MeterKind, TxnType, LearningState, ReleaseType } from "@fameworld/db";
 import {
   needsHospital,
   worldClockFromEnv,
@@ -6,10 +6,15 @@ import {
   gameWeeksBetween,
   addAttributeXp,
   jobPrimaryAttribute,
+  releaseSalesForWeek,
+  updateChartScore,
+  RELEASE_RETIRE_SCORE,
   PAYDAY_XP,
   STUDY_XP,
   type MeterState,
 } from "@fameworld/game-engine";
+
+const ROYALTY_PER_SALE = 2;
 
 const clock = worldClockFromEnv();
 
@@ -25,6 +30,8 @@ export interface HeartbeatResult {
   paydays: number;
   rentCharged: number;
   evictions: number;
+  releasesSold: number;
+  releasesRetired: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -161,10 +168,79 @@ async function sweepRent(nowGame: Date): Promise<{ rentCharged: number; eviction
   return { rentCharged, evictions };
 }
 
+/** Accrue weekly record sales, update chart scores and pay royalties. */
+async function sweepReleases(nowGame: Date): Promise<{ releasesSold: number; releasesRetired: number }> {
+  const releases = await prisma.release.findMany({
+    where: { active: true },
+    include: {
+      band: { include: { city: true, members: true } },
+      tracks: { include: { song: true } },
+    },
+  });
+  let releasesSold = 0;
+  let releasesRetired = 0;
+
+  for (const r of releases) {
+    const weeks = gameWeeksBetween(r.lastSalesGameAt, nowGame);
+    if (weeks <= 0) continue;
+
+    const gameReleaseTime = clock.toGameTime(r.releasedAt);
+    const startAge = Math.max(0, gameWeeksBetween(gameReleaseTime, r.lastSalesGameAt));
+    const avgQuality =
+      r.tracks.length > 0
+        ? r.tracks.reduce((s, t) => s + t.song.quality, 0) / r.tracks.length
+        : 0;
+    const isAlbum = r.type === ReleaseType.ALBUM;
+
+    let periodSales = 0;
+    let score = r.chartScore;
+    for (let w = 0; w < weeks; w++) {
+      const weekSales = releaseSalesForWeek({
+        fame: r.band.fame,
+        avgQuality,
+        reach: r.band.city.reach,
+        weeksSinceRelease: startAge + w,
+        isAlbum,
+      });
+      periodSales += weekSales;
+      score = updateChartScore(score, weekSales);
+    }
+
+    const retire = score < RELEASE_RETIRE_SCORE && startAge + weeks > 2;
+    const royalties = periodSales * ROYALTY_PER_SALE;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.release.update({
+        where: { id: r.id },
+        data: {
+          totalSales: { increment: periodSales },
+          chartScore: score,
+          lastSalesGameAt: nowGame,
+          active: !retire,
+        },
+      });
+      if (royalties > 0) {
+        for (const m of r.band.members) {
+          const cut = Math.round(royalties * m.share);
+          if (cut <= 0) continue;
+          await tx.character.update({ where: { id: m.characterId }, data: { money: { increment: cut } } });
+          await tx.transaction.create({
+            data: { characterId: m.characterId, amount: cut, type: TxnType.OTHER, memo: `Royalties: ${r.title}` },
+          });
+        }
+      }
+    });
+
+    if (periodSales > 0) releasesSold += 1;
+    if (retire) releasesRetired += 1;
+  }
+  return { releasesSold, releasesRetired };
+}
+
 /**
  * Global sweep over the living world. Meters derive from anchors on read, so
  * the heartbeat flips hospitalisation, completes timed learning, pays weekly
- * salaries on in-game Fridays and charges apartment rent.
+ * salaries on in-game Fridays, charges apartment rent and accrues record sales.
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
@@ -172,6 +248,7 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const learningCompleted = await sweepLearning(now);
   const paydays = await sweepPayday(nowGame);
   const rent = await sweepRent(nowGame);
+  const releases = await sweepReleases(nowGame);
   return {
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
@@ -180,5 +257,7 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
     paydays,
     rentCharged: rent.rentCharged,
     evictions: rent.evictions,
+    releasesSold: releases.releasesSold,
+    releasesRetired: releases.releasesRetired,
   };
 }

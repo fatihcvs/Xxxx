@@ -16,6 +16,8 @@ import {
   learningFinishesAt,
   performanceQuality,
   STAGE_ROLES,
+  releaseSalesForWeek,
+  updateChartScore,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -151,5 +153,30 @@ describe("music performance", () => {
     expect(rehearsed).toBeGreaterThan(raw);
     expect(withShow).toBeGreaterThan(rehearsed);
     expect(withShow).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("release sales & charts", () => {
+  const rng = () => 0.5; // deterministic
+
+  it("sells more with higher fame and decays with age", () => {
+    const base = { avgQuality: 70, reach: 5000, rng };
+    const wk0 = releaseSalesForWeek({ ...base, fame: 60, weeksSinceRelease: 0 });
+    const wk4 = releaseSalesForWeek({ ...base, fame: 60, weeksSinceRelease: 4 });
+    const lowFame = releaseSalesForWeek({ ...base, fame: 10, weeksSinceRelease: 0 });
+    expect(wk0).toBeGreaterThan(wk4);
+    expect(wk0).toBeGreaterThan(lowFame);
+  });
+
+  it("albums sell more than singles", () => {
+    const base = { fame: 50, avgQuality: 70, reach: 5000, weeksSinceRelease: 0, rng };
+    expect(releaseSalesForWeek({ ...base, isAlbum: true })).toBeGreaterThan(
+      releaseSalesForWeek({ ...base, isAlbum: false }),
+    );
+  });
+
+  it("chart score blends previous momentum with new sales", () => {
+    expect(updateChartScore(100, 50)).toBeCloseTo(105, 5);
+    expect(updateChartScore(0, 0)).toBe(0);
   });
 });

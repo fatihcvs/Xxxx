@@ -9,6 +9,7 @@
     "city": "Şehir",
     "career": "Kariyer",
     "band": "Grup",
+    "charts": "Sıralamalar",
     "finances": "Finans",
     "settings": "Ayarlar",
     "logout": "Çıkış yap"
@@ -126,7 +127,27 @@
     "recentConcerts": "Son konserler",
     "attendance": "Katılım",
     "review": "Eleştiri",
-    "leave": "Gruptan ayrıl"
+    "leave": "Gruptan ayrıl",
+    "recordTitle": "Kayıt yap",
+    "recordHint": "Parçaları ve formatı seç. Satış, sıralama puanı ve telif haftalık işlenir.",
+    "releaseTitle": "Başlık",
+    "format": "Format",
+    "single": "Single (1–2 parça)",
+    "album": "Albüm (6–12 parça)",
+    "pickTracks": "Parçalar",
+    "record": "Kaydet",
+    "releases": "Yayınlar",
+    "tracks": "parça",
+    "sales": "satış",
+    "score": "puan",
+    "retired": "listeden düştü"
+  },
+  "charts": {
+    "global": "Global sıralama",
+    "inCity": "{city} sıralaması",
+    "sales": "satış",
+    "empty": "Henüz listeye giren yayın yok.",
+    "note": "Sıralamalar aktif yayınları güncel ivmeye göre dizer. Girmek için kayıt yap."
   },
   "common": {
     "years": "yaş"

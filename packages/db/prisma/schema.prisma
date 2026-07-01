@@ -346,6 +346,7 @@ model Band {
   members  BandMembership[]
   songs    Song[]
   concerts Concert[]
+  releases Release[]
 
   createdAt DateTime @default(now())
 }
@@ -372,6 +373,43 @@ model Song {
   lyricsQuality Int     @default(0)
   rehearsal     Int     @default(0) // jam level 0..100
   composedAt    DateTime @default(now())
+
+  releaseTracks ReleaseTrack[]
+}
+
+enum ReleaseType {
+  SINGLE
+  ALBUM
+}
+
+// A recorded release (single or album) that accrues sales and charts over time.
+model Release {
+  id              String      @id @default(cuid())
+  bandId          String
+  band            Band        @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  title           String
+  type            ReleaseType
+  releasedAt      DateTime    @default(now())
+  lastSalesGameAt DateTime // in-game time of the last weekly sales tick
+  totalSales      Int         @default(0)
+  chartScore      Float       @default(0) // rolling popularity used for ranking
+  active          Boolean     @default(true)
+
+  tracks ReleaseTrack[]
+
+  @@index([active])
+  @@index([chartScore])
+}
+
+model ReleaseTrack {
+  id        String  @id @default(cuid())
+  releaseId String
+  release   Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  songId    String
+  song      Song    @relation(fields: [songId], references: [id])
+  position  Int
+
+  @@unique([releaseId, songId])
 }
 
 model Concert {

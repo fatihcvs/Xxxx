@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -569,4 +569,71 @@ export async function performConcertAction(formData: FormData): Promise<void> {
   });
   revalidatePath(`/${locale}/band`);
   revalidatePath(`/${locale}`, "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Recording (Faz 4): releases, sales & charts
+// ---------------------------------------------------------------------------
+
+const STUDIO_FEE = { SINGLE: 200, ALBUM: 800 } as const;
+// Track-count bounds per format (album min relaxed for early play).
+const TRACK_BOUNDS = { SINGLE: { min: 1, max: 2 }, ALBUM: { min: 6, max: 12 } } as const;
+
+const recordSchema = z.object({
+  title: z.string().min(1).max(80),
+  type: z.nativeEnum(ReleaseType),
+  songIds: z.array(z.string()).min(1),
+  locale: z.string().default("en"),
+});
+
+/**
+ * Record a single/album from the band's songs. Charges a studio fee; the worker
+ * accrues weekly sales, updates chart score and pays royalties over time.
+ */
+export async function recordReleaseAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = recordSchema.safeParse({
+    title: formData.get("title"),
+    type: formData.get("type"),
+    songIds: formData.getAll("songIds").map(String),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const { title, type, songIds, locale } = parsed.data;
+
+  const c = await loadLivingCharacter(userId);
+  const membership = await activeBandMembership(c.id);
+  if (!membership) return;
+
+  const bounds = TRACK_BOUNDS[type];
+  const uniqueIds = [...new Set(songIds)];
+  if (uniqueIds.length < bounds.min || uniqueIds.length > bounds.max) return;
+
+  // All chosen songs must belong to this band.
+  const songs = await prisma.song.findMany({
+    where: { id: { in: uniqueIds }, bandId: membership.bandId },
+  });
+  if (songs.length !== uniqueIds.length) return;
+
+  const fee = STUDIO_FEE[type];
+  if (c.money < fee) return;
+
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: fee } } }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -fee, type: TxnType.PURCHASE, memo: `Studio: ${title}` },
+    }),
+    prisma.release.create({
+      data: {
+        bandId: membership.bandId,
+        title,
+        type,
+        lastSalesGameAt: worldClock.toGameTime(),
+        tracks: {
+          create: uniqueIds.map((songId, i) => ({ songId, position: i + 1 })),
+        },
+      },
+    }),
+  ]);
+  revalidatePath(`/${locale}/band`);
 }

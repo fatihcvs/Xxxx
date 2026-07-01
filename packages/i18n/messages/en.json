@@ -9,6 +9,7 @@
     "city": "City",
     "career": "Career",
     "band": "Band",
+    "charts": "Charts",
     "finances": "Finances",
     "settings": "Settings",
     "logout": "Log out"
@@ -126,7 +127,27 @@
     "recentConcerts": "Recent concerts",
     "attendance": "Attendance",
     "review": "Review",
-    "leave": "Leave band"
+    "leave": "Leave band",
+    "recordTitle": "Record a release",
+    "recordHint": "Pick tracks and a format. Sales, chart score and royalties accrue weekly.",
+    "releaseTitle": "Title",
+    "format": "Format",
+    "single": "Single (1–2 tracks)",
+    "album": "Album (6–12 tracks)",
+    "pickTracks": "Tracks",
+    "record": "Record",
+    "releases": "Releases",
+    "tracks": "tracks",
+    "sales": "sales",
+    "score": "score",
+    "retired": "off the charts"
+  },
+  "charts": {
+    "global": "Global chart",
+    "inCity": "Chart in {city}",
+    "sales": "sales",
+    "empty": "No releases charting yet.",
+    "note": "Charts rank active releases by recent momentum. Record a release to enter."
   },
   "common": {
     "years": "yrs"
