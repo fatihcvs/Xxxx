@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import type { CharacterView } from "@/lib/character";
 import { formatGameDate } from "@/lib/world";
+import { Avatar } from "./Avatar";
 
 function Meter({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -21,18 +22,21 @@ export async function StatusBar({ character }: { character: CharacterView }) {
   return (
     <header className="panel mb-4">
       <div className="panel-body flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div className="mr-auto">
-          <div className="font-semibold flex items-center gap-2">
-            {character.firstName} {character.lastName}
-            {character.vip && (
-              <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
-                VIP
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-ink/60">
-            {t("age")}: {character.age} · {character.currentCityName}
-            {character.currentLocaleName ? ` · ${character.currentLocaleName}` : ""}
+        <div className="mr-auto flex items-center gap-3">
+          <Avatar firstName={character.firstName} lastName={character.lastName} size={40} />
+          <div>
+            <div className="font-semibold flex items-center gap-2">
+              {character.firstName} {character.lastName}
+              {character.vip && (
+                <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+                  VIP
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-ink/60">
+              {t("age")}: {character.age} · {character.currentCityName}
+              {character.currentLocaleName ? ` · ${character.currentLocaleName}` : ""}
+            </div>
           </div>
         </div>
         <Meter label={t("mood")} value={character.meters.mood} color="#f59e0b" />
