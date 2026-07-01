@@ -3,6 +3,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getCharacterForUser } from "@/lib/character";
+import { formatGameDate } from "@/lib/world";
 import { StatusBar } from "@/components/StatusBar";
 import { NavMenu } from "@/components/NavMenu";
 
@@ -23,25 +24,26 @@ export default async function GameLayout({
   if (!character) redirect(`/${locale}/create`);
 
   const t = await getTranslations("app");
+  const ts = await getTranslations("status");
 
   return (
     <div className="min-h-screen">
-      {/* Wordmark band */}
-      <div className="bg-brand text-white">
-        <div className="mx-auto max-w-5xl px-4 py-2.5 text-center">
-          <span className="text-lg font-extrabold tracking-tight">{t("name")}</span>
+      {/* Dark masthead: serif wordmark left, in-game date right */}
+      <div className="bg-band text-bandInk border-b border-black/40">
+        <div className="mx-auto flex max-w-5xl items-baseline justify-between px-4 py-2.5">
+          <span className="wordmark text-xl">{t("name")}</span>
+          <span className="text-xs opacity-80">
+            {ts("date")}: {formatGameDate()}
+          </span>
         </div>
       </div>
 
+      {/* Horizontal tab navigation (classic two-row menu) */}
+      <NavMenu locale={locale} />
+
       <div className="mx-auto max-w-5xl p-4">
         <StatusBar character={character} />
-        {/* Content on the left, grouped navigation sidebar on the right (classic layout). */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_210px] gap-4">
-          <section className="order-2 md:order-1">{children}</section>
-          <aside className="order-1 md:order-2">
-            <NavMenu locale={locale} />
-          </aside>
-        </div>
+        <section>{children}</section>
       </div>
     </div>
   );

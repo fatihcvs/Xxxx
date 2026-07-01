@@ -20,38 +20,40 @@ ilk bakışta okunabilirlik.
 ---
 
 ## 1. Marka & Ton
-- **Kişilik:** modern ama klasik, "yönetim simülasyonu" hissi; sahne/müzik enerjisini
-  mor aksan + ölçüm çubuklarıyla verir, ama içerik alanı sakin ve okunur kalır.
-- **Wordmark:** "Fameworld" — özgün tipografik logo (yıldız/eşitleyici (equalizer)
-  motifi önerilir, ama serbest). Tek renk + mor varyant.
+- **Kişilik (Faz 13'ten itibaren):** klasik, sayfa-tabanlı tarayıcı oyunu estetiği —
+  sıcak parşömen zemin, krem paneller, koyu serif panel başlıkları, yoğun/kompakt
+  listeler. "Yaşayan eski dünya" hissi; içerik alanı sakin ve okunur.
+- **Wordmark:** "Fameworld" — serif italik tipografik wordmark (özgün; hiçbir mevcut
+  oyunun logosu/varlığı kopyalanmaz).
 - **Ton (metin):** kısa, arkadaşça, ikinci tekil şahıs ("Karakterin hastanede…").
 
 ## 2. Tasarım Token'ları (Tailwind ile uygulanacak)
-**Renk**
-- brand `#7c3aed` (mor), brandDark `#5b21b6`
-- ink (metin) `#1f2430`; ink/60, ink/50 tonları ikincil metin
-- soft (arka plan) `#f4f2f8`; panel `#ffffff`; kenarlık `rgba(0,0,0,0.10)`
-- Ölçerler: mood/keyif `#f59e0b` (amber), health/sağlık `#ef4444` (kırmızı),
-  energy/enerji `#10b981` (yeşil)
+**Renk (klasik tema)**
+- brand `#7d2f2f` (bordo), brandDark `#5f2424`
+- ink (metin) `#33302a`; ink/60, ink/50 tonları ikincil metin
+- soft (sayfa zemini) `#e9e4d3` (parşömen); panel `#faf7ec`; kenarlık (edge) `#c7bfa6`
+- band (üst koyu şerit) `#2e2a24`; bandInk `#efe9d6`; altRow (zebra satır) `#f1ecdb`
+- Ölçerler: mood/keyif `#c9a227` (hardal), health/sağlık `#a23434` (koyu kırmızı),
+  energy/enerji `#4e7a3a` (zeytin yeşili)
 - Durum: success `#16a34a`, danger `#dc2626`, warning `#d97706`, info `#2563eb`
 - Para pozitif `#16a34a`, negatif `#dc2626`
 
-**Tipografi:** system-ui / Segoe UI / Roboto ailesi.
-- Başlık panel: 14px/600; sayfa başlığı 20–24px/700; gövde 14px; küçük etiket 11px;
-  rakam vurguları 16–18px/600.
+**Tipografi:** gövde 13px Verdana/Tahoma (yoğun klasik his); panel başlıkları ve
+karakter adı Georgia/serif (`font-display`). Küçük etiket 11px; rakamlar `tabular-nums`.
 
-**Uzaklık/biçim:** taban birim 4px; panel iç boşluğu 16px; radius: kart 6px, buton 4px,
-pill/rozet 999px. Gölge: `0 1px 2px rgba(0,0,0,.06)` (panel), hover'da hafif artış.
+**Uzaklık/biçim:** taban birim 4px; panel iç boşluğu 12px; radius: kart/buton 2px
+(keskin klasik köşe), pill/rozet 999px. Gölge: `0 1px 2px rgba(0,0,0,.06)` (panel).
 
 **Breakpoint'ler:** mobil <768, tablet 768–1024, masaüstü >1024. İçerik max genişlik 1024px.
 **z-index:** taban 0, sticky durum çubuğu 10, dropdown 20, modal 40, toast 50.
 
 ## 3. Global / Paylaşılan Bileşenler
 Her biri light tema + hover/focus/disabled/loading durumlarıyla tasarlanacak.
-1. **StatusBar (üst durum çubuğu)** — karakter adı+yaş+konum, 3 ölçer (keyif/sağlık/enerji),
-   para (§), ün, oyun tarihi. Sticky. Mobilde sarar (wrap) / özet moda geçer.
-2. **NavMenu (sol menü)** — dikey liste; aktif öğe mor dolgu; altta çıkış. Mobilde
-   hamburger → kayan çekmece (drawer).
+1. **StatusBar (durum şeridi)** — karakter adı+yaş+konum (uçuştaysa "✈ {şehir} yolunda"),
+   3 ölçer (keyif/sağlık/enerji), para (§), ün. Mobilde sarar (wrap).
+2. **NavMenu (yatay sekme menü)** — üst satır: bölümler (Karakter/Kariyer/Sosyal/Dünya/Ekonomi),
+   alt satır: aktif bölümün sayfaları; aktif öğe bordo. Mobilde hamburger → dikey liste.
+   Menünün üstünde koyu **masthead** bandı: solda serif wordmark, sağda oyun tarihi.
 3. **Panel** — `panel-header` (başlık + opsiyonel sağ aksiyon) + `panel-body`. Temel yapı taşı.
 4. **Butonlar** — `btn` (primary mor), `btn-ghost` (kenarlıklı), tehlike varyantı (kırmızı metin).
    Durumlar: hover, active/press, disabled, loading (spinner + kilitli).
@@ -93,8 +95,9 @@ Her ekran için: **Amaç · Route/dosya · Yerleşim · Bileşenler · Durumlar 
 - Varlıklar: avatar parça setleri (§6).
 
 ### B. Ana Oyun İskeleti (her sayfada)
-**B1. StatusBar + NavMenu + içerik grid** ✅ — `app/[locale]/(game)/layout.tsx`
-- Yerleşim: üst durum çubuğu; altında `200px | 1fr` grid (menü | içerik). Mobilde tek kolon.
+**B1. Masthead + yatay NavMenu + StatusBar + içerik** ✅ — `app/[locale]/(game)/layout.tsx`
+- Yerleşim (Faz 13): koyu masthead (wordmark + tarih) → iki satırlı yatay sekme menü →
+  durum şeridi → tek kolon içerik (max 1024px). Mobilde menü hamburger'a düşer.
 - Animasyon: ölçerlerin değer değişiminde yumuşak dolum; para değişiminde count-up + renk flaş;
   sayfa geçişinde içerik alanı fade.
 - **Hastane durumu:** karakter <%15 iken durum çubuğu "Hastanede" rozeti + kırmızı nabız (pulse);
@@ -137,6 +140,15 @@ Her ekran için: **Amaç · Route/dosya · Yerleşim · Bileşenler · Durumlar 
   hastanede (kilit).
 - Animasyon: aksiyon sonrası toast + ilgili ölçer/para güncelleme animasyonu.
 - Varlıklar: mekan başlık görseli (tür bazlı), aksiyon ikonları (dinlen, ye, iş, kitap, ders, anahtar/kira).
+
+**D3. Dünya & Seyahat** ✅ — `(game)/world` (Faz 13)
+- Amaç: 50 gerçek şehri listele (bayrak + ülke + yerel saat + sakin sayısı) ve uçuş sat.
+- Bileşenler: klasik zebra tablo; satırda uçuş bilgisi "§fiyat · dk · -enerji"; **Buraya uç**
+  butonu (para yetersiz / uçuştayken disabled); üstte uçuş-durumu paneli (varış saati).
+- Durumlar: buradasın (yeşil etiket), uçuşta (banner + tüm butonlar kilitli), para yetersiz.
+- Kurallar: fiyat/süre/enerji büyük daire mesafesinden türetilir (game-engine `travel.ts`);
+  varış gerçek zamanda işlenir (sayfa okuması veya worker heartbeat'i sonlandırır).
+- Varlıklar: bayraklar Unicode bölgesel gösterge (asset yok); uçak için "✈" glifi.
 
 ### E. Ekonomi & Kariyer
 **E1. Kariyer** ✅ — `(game)/career` — işler + maaş + "Cuma ödeme" notu. Empty state.

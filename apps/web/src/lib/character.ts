@@ -29,6 +29,9 @@ export interface CharacterView {
   hospitalized: boolean;
   vip: boolean;
   meters: { mood: number; health: number; energy: number };
+  /** Set while flying to another city. */
+  travelingToCityName: string | null;
+  travelArrivesAt: Date | null;
 }
 
 function toMeterState(row: {
@@ -39,21 +42,38 @@ function toMeterState(row: {
   return { value: row.value, anchorAt: row.anchorAt, ratePerHour: row.ratePerHour };
 }
 
+const CHARACTER_VIEW_INCLUDE = {
+  meters: true,
+  cityBorn: true,
+  currentCity: true,
+  currentLocale: true,
+  travelingTo: true,
+  user: { select: { vipUntil: true } },
+} as const;
+
 /** Load the account's (single) living character as a display view model. */
 export async function getCharacterForUser(userId: string): Promise<CharacterView | null> {
-  const c = await prisma.character.findFirst({
+  let c = await prisma.character.findFirst({
     where: { userId, isAlive: true },
-    include: {
-      meters: true,
-      cityBorn: true,
-      currentCity: true,
-      currentLocale: true,
-      user: { select: { vipUntil: true } },
-    },
+    include: CHARACTER_VIEW_INCLUDE,
   });
   if (!c) return null;
 
   const now = new Date();
+
+  // Landed while the player was away: finalise the arrival on read.
+  if (c.travelingToCityId && c.travelArrivesAt && c.travelArrivesAt.getTime() <= now.getTime()) {
+    c = await prisma.character.update({
+      where: { id: c.id },
+      data: {
+        currentCityId: c.travelingToCityId,
+        currentLocaleId: null,
+        travelingToCityId: null,
+        travelArrivesAt: null,
+      },
+      include: CHARACTER_VIEW_INCLUDE,
+    });
+  }
   const byKind = new Map(c.meters.map((m) => [KIND_MAP[m.kind], toMeterState(m)]));
   const mood = byKind.get("mood");
   const health = byKind.get("health");
@@ -78,6 +98,8 @@ export async function getCharacterForUser(userId: string): Promise<CharacterView
     currentLocaleName: c.currentLocale?.name ?? null,
     hospitalized,
     vip: !!c.user?.vipUntil && c.user.vipUntil.getTime() > now.getTime(),
+    travelingToCityName: c.travelingTo?.name ?? null,
+    travelArrivesAt: c.travelArrivesAt,
     meters: {
       mood: mood ? Math.round(currentMeter(mood, now)) : 0,
       health: health ? Math.round(currentMeter(health, now)) : 0,

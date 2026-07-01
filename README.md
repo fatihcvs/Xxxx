@@ -84,6 +84,11 @@ character to hospital; the heartbeat worker admits and discharges them.
 - **Phase 5:** relationships, messaging, children, aging → death → heir.
 - **Phase 6:** real estate, businesses, city elections/mayor + tax, VIP.
 - **Phase 7:** multiple cities, procedural NPC world, admin dashboard, deployment.
+- **Phase 8–9:** 17 genres + stage roles, music videos, fan bases; 19-category
+  skill tree with prerequisites and mentors.
+- **Phase 13 (core):** a world of **50 real cities in 39 countries** (timezones,
+  coordinates), inter-city **flights** (distance-based cost/duration/energy,
+  real-time arrival), airports, the World page and a classic page-based UI theme.
 
 All simulation formulas live in `packages/game-engine` and are unit-tested.
 

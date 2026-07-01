@@ -8,34 +8,62 @@
 
 body {
   @apply bg-soft text-ink;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Classic dense browser-game type: small, crisp, system sans. */
+  font-family: Verdana, Tahoma, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
 }
 
-/* Classic page-based panel look: white card with a soft grey header bar */
+/* Serif wordmark / display headings */
+.wordmark {
+  @apply font-display italic font-bold tracking-wide;
+}
+
+/* Classic page-based panel: cream card, thin border, dark serif title bar. */
 .panel {
-  @apply bg-panel rounded-md border border-black/10 shadow-sm;
+  @apply bg-panel rounded-sm border border-edge shadow-sm;
 }
 .panel-header {
-  @apply px-4 py-2 border-b border-black/10 font-semibold text-sm text-ink/70 rounded-t-md;
-  background: linear-gradient(#f3f5f9, #e7ebf2);
+  @apply px-3 py-1.5 font-display text-[15px] font-semibold rounded-t-sm text-bandInk;
+  background: linear-gradient(#4b4335, #3a3429);
+  border-bottom: 1px solid #2e2a24;
 }
 .panel-body {
-  @apply p-4;
+  @apply p-3;
 }
+
 .btn {
-  @apply inline-flex items-center justify-center rounded bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brandDark disabled:opacity-50 transition-colors;
+  @apply inline-flex items-center justify-center rounded-sm bg-brand px-3 py-1 text-[13px] font-medium text-white hover:bg-brandDark disabled:opacity-50 transition-colors;
+  border: 1px solid #4d1d1d;
 }
 .btn-ghost {
-  @apply inline-flex items-center justify-center rounded border border-black/15 px-3 py-1.5 text-sm font-medium hover:bg-black/[0.03];
+  @apply inline-flex items-center justify-center rounded-sm border border-edge bg-panel px-3 py-1 text-[13px] font-medium hover:bg-altRow disabled:opacity-50;
 }
 .field {
-  @apply w-full rounded border border-black/15 px-3 py-2 text-sm outline-none focus:border-brand;
+  @apply w-full rounded-sm border border-edge bg-white px-3 py-1.5 text-[13px] outline-none focus:border-brand;
 }
+
+a {
+  @apply text-brand;
+}
+a:hover {
+  @apply underline;
+}
+
 .meter {
-  @apply h-2 rounded-full bg-black/10 overflow-hidden;
+  @apply h-2 overflow-hidden rounded-sm border border-edge bg-white;
 }
 .meter > span {
   @apply block h-full;
+}
+
+/* Dense classic tables: hairline rows, alternating stripes. */
+table.classic tbody tr,
+tbody tr.row {
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+table.classic tbody tr:nth-child(odd),
+tbody tr.row:nth-child(odd) {
+  background-color: #f1ecdb;
 }
 
 /* --- Micro-animations (respect reduced motion) --- */

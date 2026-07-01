@@ -52,6 +52,9 @@ model City {
   country   Country @relation(fields: [countryId], references: [id])
   timezone  String  @default("UTC")
   reach     Int     @default(5000) // potential local audience
+  // Geographic position; drives flight distance/cost/duration between cities.
+  lat       Float   @default(0)
+  lon       Float   @default(0)
 
   // Politics: current mayor and the tax rate they set (0..0.25).
   taxRate Float   @default(0)
@@ -61,6 +64,7 @@ model City {
   locales      Locale[]
   bornHere     Character[] @relation("BornCity")
   presentHere  Character[] @relation("CurrentCity")
+  flyingHere   Character[] @relation("TravelingTo")
   bands        Band[]
   properties   Property[]
   businesses   Business[]
@@ -82,6 +86,7 @@ enum LocaleType {
   STADIUM
   RADIO
   PARK
+  AIRPORT
 }
 
 model Locale {
@@ -136,6 +141,11 @@ model Character {
   hospitalizedAt DateTime?
   // In-game time of the last aging/death roll (drives the aging sweep).
   lastAgedGameAt DateTime?
+
+  // In-flight state: destination + real arrival time (cleared on arrival).
+  travelingToCityId String?
+  travelingTo       City?     @relation("TravelingTo", fields: [travelingToCityId], references: [id])
+  travelArrivesAt   DateTime?
 
   // Family / heir line.
   parentId String?

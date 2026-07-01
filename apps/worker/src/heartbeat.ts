@@ -32,6 +32,7 @@ export interface HeartbeatResult {
   scanned: number;
   hospitalized: number;
   discharged: number;
+  arrivals: number;
   learningCompleted: number;
   paydays: number;
   rentCharged: number;
@@ -45,6 +46,26 @@ export interface HeartbeatResult {
   electionsResolved: number;
   electionsOpened: number;
   fameDecayed: number;
+}
+
+/** Land characters whose flight has arrived (Faz 13). */
+async function sweepTravel(now: Date): Promise<number> {
+  const due = await prisma.character.findMany({
+    where: { travelArrivesAt: { lte: now }, travelingToCityId: { not: null } },
+    select: { id: true, travelingToCityId: true },
+  });
+  for (const c of due) {
+    await prisma.character.update({
+      where: { id: c.id },
+      data: {
+        currentCityId: c.travelingToCityId!,
+        currentLocaleId: null,
+        travelingToCityId: null,
+        travelArrivesAt: null,
+      },
+    });
+  }
+  return due.length;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -443,6 +464,7 @@ async function sweepBandFame(nowGame: Date): Promise<number> {
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
+  const arrivals = await sweepTravel(now);
   const hospital = await sweepHospital(now);
   const learningCompleted = await sweepLearning(now);
   const paydays = await sweepPayday(nowGame);
@@ -455,6 +477,7 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const fameDecayed = await sweepBandFame(nowGame);
   return {
     fameDecayed,
+    arrivals,
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
     discharged: hospital.discharged,

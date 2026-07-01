@@ -22,6 +22,9 @@ kira, **grup + şarkı bestele + prova + konser + ün**, **CD kayıt + haftalık
 **ilişkiler + mesaj + çocuk + yaşlanma→ölüm→varis**, **gayrimenkul + işletme + seçim/başkan + vergi + VIP**,
 **çoklu şehir + prosedürel NPC dünya**, admin paneli, /api/health, avatar, mobil menü.
 
+Faz 13 (çekirdek) de tamamlandı: **50 gerçek şehir + ülkeler + zaman dilimleri +
+uçuşla şehirler arası seyahat + Dünya sayfası + klasik tasarım yenilemesi** (aşağıda).
+
 ---
 
 ## 1. POPMUNDO SİSTEMLERİ — PARİTE MATRİSİ
@@ -84,10 +87,10 @@ Firemen, Nature & Resources, Paranormal Sciences, Crafting, Miscellaneous.**
 - 🟡 Sosyalleş; ◻︎ **hediyeler**, ◻︎ farklı etkileşim türleri (öv, hakaret, flört…).
 
 ### G. Şehirler & Dünya
-- 🟡 4 kurgusal şehir. ◻︎ **Çok sayıda gerçek şehir** + ülkeler.
-- ◻︎ **Şehirler arası seyahat** (uçuş, süre, ücret, bagaj/enerji).
-- ✅ Mekan seti; ◻︎ **daha çok mekan türü** (stüdyo, radyo istasyonu, havaalanı, banka, mahkeme, hapishane, kilise…).
-- ◻︎ **Zaman dilimleri**, yerel müzik sahnesi/kültür.
+- ✅ **50 gerçek şehir + 39 ülke** (koordinat + IANA zaman dilimi + nüfus bazlı reach; TR: İstanbul/Ankara/İzmir/Antalya).
+- ✅ **Şehirler arası seyahat**: uçuş — mesafeden ücret + gerçek-zaman süre + enerji; varış okuma anında veya heartbeat ile işlenir.
+- ✅ Mekan seti + **havaalanı**; ◻︎ daha çok mekan türü (stüdyo, banka, mahkeme, hapishane, kilise…).
+- ✅ **Zaman dilimleri** (şehir sayfası + Dünya sayfasında yerel saat); ◻︎ yerel müzik sahnesi/kültür.
 - 🟡 Politika: ✅ seçim/başkan/vergi; ◻︎ **belediye meclisi**, ◻︎ **yasalar/kararnameler**, ◻︎ **suç şiddet ayarları** başkan tarafından.
 
 ### H. Suç & Hukuk
@@ -170,12 +173,16 @@ Orijinal plan:
 - **Gruplar/organizasyonlar**, **topluluk sayfaları**, **blog/günlük**, **forum**.
 - Model: `Marriage`, `Pregnancy`, `Organization`, `Membership`, `BlogPost`, `ForumThread`, `Gift`.
 
-### Faz 13 — Dünya & Seyahat
-- **Çok sayıda gerçek şehir** + ülkeler + zaman dilimleri.
-- **Şehirler arası seyahat** (uçuş: süre + ücret + enerji).
-- **Yeni mekan türleri** (stüdyo, radyo, havaalanı, banka, mahkeme, hapishane, kilise).
+### 🟡 Faz 13 — Dünya & Seyahat (ÇEKİRDEK TAMAMLANDI)
+Tamamlanan: **50 gerçek şehir + 39 ülke** (koordinat, zaman dilimi, reach) + eski
+kurgusal şehirlerin gerçek şehirlere göçü; **uçuşla seyahat** (mesafe→ücret+süre+enerji,
+uçuş sırasında aksiyon kilidi, varış read/heartbeat ile); **havaalanı** mekan türü;
+**Dünya sayfası** (bayrak + yerel saat + sakinler + uçuş bilgisi); klasik sayfa-tabanlı
+**tasarım yenilemesi** (parşömen/serif/zebra tablo).
+Kalan:
+- **Yeni mekan türleri** (stüdyo, banka, mahkeme, hapishane, kilise).
 - **Belediye meclisi + yasalar + suç şiddet ayarları**.
-- Model: `Flight/Trip`, `LocaleType`(genişlet), `Law`, `CouncilSeat`.
+- Model: `Law`, `CouncilSeat`.
 
 ### Faz 14 — Suç & Hukuk
 - **Suç aksiyonları** (şiddet 1–10), çeteler; **polis kariyeri** (devriye/tutuklama).

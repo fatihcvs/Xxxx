@@ -27,6 +27,10 @@ import {
   inheritedAttributeLevel,
   vipLearningMultiplier,
   MAX_TAX_RATE,
+  haversineKm,
+  flightCost,
+  flightEnergyCost,
+  flightArrivesAt,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -114,6 +118,23 @@ async function loadLivingCharacter(userId: string) {
     include: { meters: true },
   });
   if (!c) throw new Error("No character");
+  // Complete a due flight on the fly; block gameplay while still in the air.
+  if (c.travelingToCityId && c.travelArrivesAt) {
+    if (c.travelArrivesAt.getTime() <= Date.now()) {
+      const arrived = await prisma.character.update({
+        where: { id: c.id },
+        data: {
+          currentCityId: c.travelingToCityId,
+          currentLocaleId: null,
+          travelingToCityId: null,
+          travelArrivesAt: null,
+        },
+        include: { meters: true },
+      });
+      return arrived;
+    }
+    throw new Error("Character is in transit");
+  }
   return c;
 }
 
@@ -163,6 +184,56 @@ export async function travelAction(formData: FormData): Promise<void> {
   });
   revalidatePath(`/${locale}/locale/${localeId}`);
   revalidatePath(`/${locale}/city`);
+}
+
+const flySchema = z.object({ cityId: z.string(), locale: z.string() });
+
+/** Fly to another city: costs money and energy, takes real time (Faz 13). */
+export async function flyToCityAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { cityId, locale } = flySchema.parse({
+    cityId: formData.get("cityId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId); // throws while in transit
+  if (c.hospitalizedAt) return;
+  if (cityId === c.currentCityId) return;
+
+  const [from, to] = await Promise.all([
+    prisma.city.findUnique({ where: { id: c.currentCityId } }),
+    prisma.city.findUnique({ where: { id: cityId } }),
+  ]);
+  if (!from || !to) throw new Error("Unknown city");
+
+  const km = haversineKm(from, to);
+  const price = flightCost(km);
+  if (c.money < price) return;
+
+  const now = new Date();
+  const energyRow = meterRow(c, MeterKind.ENERGY);
+  const energyNow = currentMeter(energyRow, now);
+  const energyAfter = clampMeter(energyNow - flightEnergyCost(km));
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: {
+        money: { decrement: price },
+        currentLocaleId: null,
+        travelingToCityId: to.id,
+        travelArrivesAt: flightArrivesAt(km, now),
+      },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -price, type: TxnType.PURCHASE, memo: `Flight to ${to.name}` },
+    }),
+    prisma.characterMeter.update({
+      where: { characterId_kind: { characterId: c.id, kind: MeterKind.ENERGY } },
+      data: { value: energyAfter, anchorAt: now },
+    }),
+  ]);
+
+  revalidatePath(`/${locale}`, "layout");
 }
 
 export async function restAction(locale: string): Promise<void> {

@@ -22,7 +22,8 @@
     "grpCareer": "Kariyer",
     "grpSocial": "Sosyal",
     "grpWorld": "Dünya",
-    "grpMoney": "Ekonomi"
+    "grpMoney": "Ekonomi",
+    "world": "Dünya & Seyahat"
   },
   "skills": {
     "mastersHere": "Şehrindeki ustalar",
@@ -65,7 +66,8 @@
     "age": "Yaş",
     "location": "Konum",
     "date": "Tarih",
-    "hospitalized": "Hastanede"
+    "hospitalized": "Hastanede",
+    "inFlightTo": "{city} yolunda"
   },
   "home": {
     "welcome": "Tekrar hoş geldin, {name}",
@@ -79,7 +81,20 @@
     "title": "{city}",
     "venues": "Mekanlar",
     "goHere": "Buraya git",
-    "youAreHere": "Buradasın"
+    "youAreHere": "Buradasın",
+    "localTime": "Yerel saat"
+  },
+  "world": {
+    "title": "Dünya",
+    "intro": "{count} şehir seni bekliyor. Uçmak para ve enerjiye mal olur, gerçek zaman alır.",
+    "city": "Şehir",
+    "localTime": "Yerel saat",
+    "residents": "Sakinler",
+    "flight": "Uçuş",
+    "flightInfo": "§{price} · {minutes} dk · -{energy} enerji",
+    "flyHere": "Buraya uç",
+    "youAreHere": "Buradasın",
+    "inFlight": "{city} uçağındasın. Tahmini varış: {time}."
   },
   "locale": {
     "actions": "Aksiyonlar",

@@ -22,7 +22,8 @@
     "grpCareer": "Career",
     "grpSocial": "Social",
     "grpWorld": "World",
-    "grpMoney": "Economy"
+    "grpMoney": "Economy",
+    "world": "World & Travel"
   },
   "skills": {
     "mastersHere": "Masters in your city",
@@ -65,7 +66,8 @@
     "age": "Age",
     "location": "Location",
     "date": "Date",
-    "hospitalized": "In hospital"
+    "hospitalized": "In hospital",
+    "inFlightTo": "Flying to {city}"
   },
   "home": {
     "welcome": "Welcome back, {name}",
@@ -79,7 +81,20 @@
     "title": "{city}",
     "venues": "Venues",
     "goHere": "Go here",
-    "youAreHere": "You are here"
+    "youAreHere": "You are here",
+    "localTime": "Local time"
+  },
+  "world": {
+    "title": "The World",
+    "intro": "{count} cities are waiting for you. Flying costs money and energy and takes real time.",
+    "city": "City",
+    "localTime": "Local time",
+    "residents": "Residents",
+    "flight": "Flight",
+    "flightInfo": "§{price} · {minutes} min · -{energy} energy",
+    "flyHere": "Fly here",
+    "youAreHere": "You are here",
+    "inFlight": "You are on a plane to {city}. Estimated arrival: {time}."
   },
   "locale": {
     "actions": "Actions",

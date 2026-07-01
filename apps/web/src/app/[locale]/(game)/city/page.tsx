@@ -19,15 +19,34 @@ export default async function CityPage({
   if (!character) redirect(`/${locale}/create`);
 
   const t = await getTranslations("city");
-  const locales = await prisma.locale.findMany({
-    where: { cityId: character.currentCityId },
-    orderBy: { name: "asc" },
-  });
+  const [city, locales] = await Promise.all([
+    prisma.city.findUnique({
+      where: { id: character.currentCityId },
+      include: { country: true },
+    }),
+    prisma.locale.findMany({
+      where: { cityId: character.currentCityId },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const localTime = city
+    ? new Intl.DateTimeFormat(locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: city.timezone,
+      }).format(new Date())
+    : "";
 
   return (
     <div className="panel">
       <div className="panel-header">{t("title", { city: character.currentCityName })}</div>
       <div className="panel-body">
+        {city && (
+          <p className="mb-3 text-xs text-ink/60">
+            {city.country.name} · {t("localTime")}: {localTime}
+          </p>
+        )}
         <h2 className="text-xs uppercase tracking-wide text-ink/50 mb-2">{t("venues")}</h2>
         <ul className="divide-y divide-black/5">
           {locales.map((l) => {

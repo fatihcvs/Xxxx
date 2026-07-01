@@ -27,6 +27,15 @@ import {
   jamCeiling,
   stageRoleFactor,
   roleAttribute,
+  haversineKm,
+  flightCost,
+  flightMinutes,
+  flightEnergyCost,
+  flightArrivesAt,
+  FLIGHT_BASE_COST,
+  FLIGHT_OVERHEAD_MIN,
+  FLIGHT_ENERGY_MIN,
+  FLIGHT_ENERGY_MAX,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -250,5 +259,34 @@ describe("music deepening (Faz 8)", () => {
     expect(roleAttribute("Vocalist")).toBe("vocals");
     expect(roleAttribute("Guitarist")).toBe("dexterity");
     expect(roleAttribute("Dancer")).toBe("sexAppeal");
+  });
+});
+
+describe("travel (Faz 13)", () => {
+  it("computes great-circle distances", () => {
+    const london = { lat: 51.51, lon: -0.13 };
+    const istanbul = { lat: 41.01, lon: 28.98 };
+    const km = haversineKm(london, istanbul);
+    expect(km).toBeGreaterThan(2400);
+    expect(km).toBeLessThan(2600);
+    expect(haversineKm(london, london)).toBe(0);
+  });
+
+  it("prices flights by distance with a base fee", () => {
+    expect(flightCost(0)).toBe(FLIGHT_BASE_COST);
+    expect(flightCost(2000)).toBeGreaterThan(flightCost(500));
+  });
+
+  it("keeps durations bounded and monotonic", () => {
+    expect(flightMinutes(0)).toBe(FLIGHT_OVERHEAD_MIN);
+    expect(flightMinutes(18000)).toBeGreaterThan(flightMinutes(2000));
+    const depart = new Date("2026-01-01T00:00:00Z");
+    const arrive = flightArrivesAt(900, depart);
+    expect(arrive.getTime()).toBeGreaterThan(depart.getTime());
+  });
+
+  it("caps the energy cost of long hauls", () => {
+    expect(flightEnergyCost(0)).toBe(FLIGHT_ENERGY_MIN);
+    expect(flightEnergyCost(50000)).toBe(FLIGHT_ENERGY_MAX);
   });
 });
