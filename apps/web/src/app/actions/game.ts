@@ -545,16 +545,30 @@ export async function performConcertAction(formData: FormData): Promise<void> {
     roleFactor,
   );
 
+  // Local fans boost the effective audience reach.
+  const fanBase = await prisma.fanBase.findUnique({
+    where: { bandId_cityId: { bandId: band.id, cityId: city.id } },
+  });
+  const localFans = fanBase?.fans ?? 0;
+
   const outcome = runConcert({
     fame: band.fame,
     venueCapacity: venue.capacity,
-    cityReach: city.reach,
+    cityReach: city.reach + localFans * 3,
     ticketPrice,
     performanceQuality: quality,
   });
 
+  // A good show converts attendees into local fans.
+  const fanGain = Math.round(outcome.attendance * (outcome.reviewScore / 100) * 0.25);
+
   const now = new Date();
   await prisma.$transaction(async (tx) => {
+    await tx.fanBase.upsert({
+      where: { bandId_cityId: { bandId: band.id, cityId: city.id } },
+      update: { fans: { increment: fanGain } },
+      create: { bandId: band.id, cityId: city.id, fans: fanGain },
+    });
     await tx.concert.create({
       data: {
         bandId: band.id,
@@ -1014,4 +1028,44 @@ export async function setStageRolesAction(formData: FormData): Promise<void> {
     }),
   ]);
   revalidatePath(`/${parsed.data.locale}/band`);
+}
+
+const musicVideoSchema = z.object({ releaseId: z.string(), locale: z.string() });
+const MUSIC_VIDEO_FEE = 500;
+
+/** Shoot a music video for one of the band's releases: boosts its sales & the band's fame. */
+export async function shootMusicVideoAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { releaseId, locale } = musicVideoSchema.parse({
+    releaseId: formData.get("releaseId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  const membership = await activeBandMembership(c.id);
+  if (!membership) return;
+
+  const release = await prisma.release.findUnique({ where: { id: releaseId } });
+  if (!release || release.bandId !== membership.bandId || release.hasVideo) return;
+  if (c.money < MUSIC_VIDEO_FEE) return;
+
+  // Video quality rides on the performer's looks and the band's current fame.
+  const looks = await attributeLevel(c.id, "looks");
+  const band = await prisma.band.findUnique({ where: { id: membership.bandId } });
+  const quality = Math.max(
+    10,
+    Math.min(100, Math.round(looks * 3 + (band?.fame ?? 0) * 0.5 + Math.random() * 20)),
+  );
+
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: MUSIC_VIDEO_FEE } } }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -MUSIC_VIDEO_FEE, type: TxnType.PURCHASE, memo: `Music video: ${release.title}` },
+    }),
+    prisma.release.update({ where: { id: release.id }, data: { hasVideo: true, videoQuality: quality } }),
+    prisma.band.update({
+      where: { id: membership.bandId },
+      data: { fame: { increment: Math.min(5, quality / 20) } },
+    }),
+  ]);
+  revalidatePath(`/${locale}/band`);
 }

@@ -65,6 +65,7 @@ model City {
   properties   Property[]
   businesses   Business[]
   elections    Election[]
+  fanBases     FanBase[]
 
   @@unique([name, countryId])
 }
@@ -370,13 +371,29 @@ model Band {
   genreId String?
   genre   Genre? @relation(fields: [genreId], references: [id])
   fame    Float  @default(0)
+  // In-game time of the last fame-decay check (release-freshness driven).
+  lastFameDecayGameAt DateTime?
 
   members  BandMembership[]
   songs    Song[]
   concerts Concert[]
   releases Release[]
+  fanBases FanBase[]
 
   createdAt DateTime @default(now())
+}
+
+// A band's fan base in a specific city (grown by concerts; boosts attendance).
+model FanBase {
+  id      String @id @default(cuid())
+  bandId  String
+  band    Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  cityId  String
+  city    City   @relation(fields: [cityId], references: [id])
+  fans    Int    @default(0)
+
+  @@unique([bandId, cityId])
+  @@index([cityId])
 }
 
 model BandMembership {
@@ -422,6 +439,8 @@ model Release {
   totalSales      Int         @default(0)
   chartScore      Float       @default(0) // rolling popularity used for ranking
   active          Boolean     @default(true)
+  hasVideo        Boolean     @default(false)
+  videoQuality    Int         @default(0) // 0..100; boosts sales & fame
 
   tracks ReleaseTrack[]
 

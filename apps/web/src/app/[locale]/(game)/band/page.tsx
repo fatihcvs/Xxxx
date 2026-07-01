@@ -11,6 +11,7 @@ import {
   leaveBandAction,
   recordReleaseAction,
   setStageRolesAction,
+  shootMusicVideoAction,
 } from "@/app/actions/game";
 
 export default async function BandPage({
@@ -40,6 +41,7 @@ export default async function BandPage({
           songs: { orderBy: { composedAt: "desc" } },
           concerts: { orderBy: { scheduledAt: "desc" }, take: 5, include: { locale: true } },
           releases: { orderBy: { releasedAt: "desc" }, include: { tracks: true } },
+          fanBases: { include: { city: true }, orderBy: { fans: "desc" }, take: 5 },
         },
       },
     },
@@ -242,13 +244,45 @@ export default async function BandPage({
                     <span className="font-medium">{r.title}</span>{" "}
                     <span className="text-[11px] text-ink/50">
                       {r.type.toLowerCase()} · {r.tracks.length} {t("tracks")}
+                      {r.hasVideo && ` · 🎬 ${r.videoQuality}`}
                     </span>
                   </div>
-                  <span className="text-ink/60">
-                    {t("sales")} {r.totalSales.toLocaleString(locale)} · {t("score")}{" "}
-                    {r.chartScore.toFixed(0)}
-                    {!r.active && ` · ${t("retired")}`}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-ink/60">
+                      {t("sales")} {r.totalSales.toLocaleString(locale)} · {t("score")}{" "}
+                      {r.chartScore.toFixed(0)}
+                      {!r.active && ` · ${t("retired")}`}
+                    </span>
+                    {!r.hasVideo && (
+                      <form action={shootMusicVideoAction}>
+                        <input type="hidden" name="releaseId" value={r.id} />
+                        <input type="hidden" name="locale" value={locale} />
+                        <button
+                          className="btn-ghost"
+                          disabled={character.hospitalizedAt !== null}
+                        >
+                          {t("shootVideo")}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Fan base per city */}
+      {band.fanBases.length > 0 && (
+        <div className="panel">
+          <div className="panel-header">{t("fanBase")}</div>
+          <div className="panel-body">
+            <ul className="divide-y divide-black/5 text-sm">
+              {band.fanBases.map((fb) => (
+                <li key={fb.id} className="flex justify-between py-1.5">
+                  <span>{fb.city.name}</span>
+                  <span className="text-brand">{fb.fans.toLocaleString(locale)} {t("fans")}</span>
                 </li>
               ))}
             </ul>

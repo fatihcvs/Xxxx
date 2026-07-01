@@ -150,7 +150,10 @@
     "tracks": "tracks",
     "sales": "sales",
     "score": "score",
-    "retired": "off the charts"
+    "retired": "off the charts",
+    "shootVideo": "Shoot video (§500)",
+    "fanBase": "Fan base",
+    "fans": "fans"
   },
   "charts": {
     "global": "Global chart",

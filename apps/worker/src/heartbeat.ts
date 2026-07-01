@@ -11,6 +11,8 @@ import {
   RELEASE_RETIRE_SCORE,
   deathProbabilityOverWeeks,
   businessProfitForWeek,
+  RELEASE_FRESHNESS_DAYS,
+  STALE_FAME_DECAY_PER_WEEK,
   PAYDAY_XP,
   STUDY_XP,
   type MeterState,
@@ -42,6 +44,7 @@ export interface HeartbeatResult {
   businessProfits: number;
   electionsResolved: number;
   electionsOpened: number;
+  fameDecayed: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -202,16 +205,21 @@ async function sweepReleases(nowGame: Date): Promise<{ releasesSold: number; rel
         : 0;
     const isAlbum = r.type === ReleaseType.ALBUM;
 
+    // A music video lifts sales by up to +50% (videoQuality 0..100).
+    const videoBoost = 1 + r.videoQuality / 200;
+
     let periodSales = 0;
     let score = r.chartScore;
     for (let w = 0; w < weeks; w++) {
-      const weekSales = releaseSalesForWeek({
-        fame: r.band.fame,
-        avgQuality,
-        reach: r.band.city.reach,
-        weeksSinceRelease: startAge + w,
-        isAlbum,
-      });
+      const weekSales = Math.round(
+        releaseSalesForWeek({
+          fame: r.band.fame,
+          avgQuality,
+          reach: r.band.city.reach,
+          weeksSinceRelease: startAge + w,
+          isAlbum,
+        }) * videoBoost,
+      );
       periodSales += weekSales;
       score = updateChartScore(score, weekSales);
     }
@@ -391,11 +399,47 @@ async function sweepElections(nowGame: Date): Promise<{ resolved: number; opened
   return { resolved, opened };
 }
 
+const MS_PER_DAY = 24 * 3_600_000;
+
+/** Decay a band's fame when it has not released anything recently. */
+async function sweepBandFame(nowGame: Date): Promise<number> {
+  const bands = await prisma.band.findMany({
+    include: { releases: { orderBy: { releasedAt: "desc" }, take: 1 } },
+  });
+  let decayed = 0;
+  for (const band of bands) {
+    const anchor = band.lastFameDecayGameAt ?? clock.toGameTime(band.createdAt);
+    const weeks = gameWeeksBetween(anchor, nowGame);
+    if (weeks <= 0) continue;
+
+    const lastReleaseGame = band.releases[0]
+      ? clock.toGameTime(band.releases[0].releasedAt)
+      : clock.toGameTime(band.createdAt);
+    const staleDays = (nowGame.getTime() - lastReleaseGame.getTime()) / MS_PER_DAY;
+
+    if (staleDays > RELEASE_FRESHNESS_DAYS && band.fame > 0) {
+      const newFame = Math.max(0, band.fame - STALE_FAME_DECAY_PER_WEEK * weeks);
+      await prisma.band.update({
+        where: { id: band.id },
+        data: { fame: newFame, lastFameDecayGameAt: nowGame },
+      });
+      decayed += 1;
+    } else {
+      await prisma.band.update({
+        where: { id: band.id },
+        data: { lastFameDecayGameAt: nowGame },
+      });
+    }
+  }
+  return decayed;
+}
+
 /**
  * Global sweep over the living world. Meters derive from anchors on read, so
  * the heartbeat flips hospitalisation, completes timed learning, pays weekly
  * salaries on in-game Fridays, charges apartment rent, accrues record sales,
- * ages characters (death → heir), pays rental/business income and runs elections.
+ * ages characters (death → heir), pays rental/business income, runs elections
+ * and decays the fame of bands that stop releasing.
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
@@ -408,7 +452,9 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const rentalIncome = await sweepProperties(nowGame);
   const businessProfits = await sweepBusinesses(nowGame);
   const elections = await sweepElections(nowGame);
+  const fameDecayed = await sweepBandFame(nowGame);
   return {
+    fameDecayed,
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
     discharged: hospital.discharged,

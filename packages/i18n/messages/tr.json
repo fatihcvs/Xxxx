@@ -150,7 +150,10 @@
     "tracks": "parça",
     "sales": "satış",
     "score": "puan",
-    "retired": "listeden düştü"
+    "retired": "listeden düştü",
+    "shootVideo": "Klip çek (§500)",
+    "fanBase": "Fan tabanı",
+    "fans": "hayran"
   },
   "charts": {
     "global": "Global sıralama",
