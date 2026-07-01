@@ -103,6 +103,31 @@
     "perWeek": "/hafta",
     "paydayNote": "Maaşlar her oyun-içi Cuma otomatik ödenir."
   },
+  "band": {
+    "startBand": "Grup kur",
+    "startIntro": "Bir grup kur, şarkı bestele, prova yap ve konser vererek ün kazan.",
+    "bandName": "Grup adı",
+    "genre": "Tür",
+    "create": "Grubu kur",
+    "fame": "Ün",
+    "members": "Üyeler",
+    "repertoire": "Repertuar",
+    "compose": "Şarkı bestele",
+    "noSongs": "Henüz şarkı yok. İlk şarkını bestele.",
+    "quality": "Kalite",
+    "rehearsed": "prova",
+    "rehearse": "Prova yap",
+    "tight": "Tam",
+    "playConcert": "Konser ver",
+    "cannotPlay": "Konser için en az bir şarkın, şehrinde bir mekan olmalı (ve hastanede olmamalısın).",
+    "venue": "Mekan",
+    "ticketPrice": "Bilet fiyatı",
+    "perform": "Şimdi sahne al",
+    "recentConcerts": "Son konserler",
+    "attendance": "Katılım",
+    "review": "Eleştiri",
+    "leave": "Gruptan ayrıl"
+  },
   "common": {
     "years": "yaş"
   }

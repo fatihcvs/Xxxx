@@ -103,6 +103,31 @@
     "perWeek": "/week",
     "paydayNote": "Salaries are paid automatically each in-game Friday."
   },
+  "band": {
+    "startBand": "Start a band",
+    "startIntro": "Form a band, compose songs, rehearse them and play concerts to build fame.",
+    "bandName": "Band name",
+    "genre": "Genre",
+    "create": "Found band",
+    "fame": "Fame",
+    "members": "Members",
+    "repertoire": "Repertoire",
+    "compose": "Compose song",
+    "noSongs": "No songs yet. Compose your first one.",
+    "quality": "Quality",
+    "rehearsed": "rehearsed",
+    "rehearse": "Rehearse",
+    "tight": "Tight",
+    "playConcert": "Play a concert",
+    "cannotPlay": "You need at least one song and a venue in your city (and to be out of hospital) to play.",
+    "venue": "Venue",
+    "ticketPrice": "Ticket price",
+    "perform": "Perform now",
+    "recentConcerts": "Recent concerts",
+    "attendance": "Attendance",
+    "review": "Review",
+    "leave": "Leave band"
+  },
   "common": {
     "years": "yrs"
   }

@@ -14,6 +14,8 @@ import {
   gameFridaysPassed,
   jobPrimaryAttribute,
   learningFinishesAt,
+  performanceQuality,
+  STAGE_ROLES,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -129,5 +131,25 @@ describe("in-game calendar helpers", () => {
   it("computes a learning finish timestamp from real hours", () => {
     const now = new Date("2024-01-01T00:00:00Z");
     expect(learningFinishesAt(2, now).getTime()).toBe(now.getTime() + 2 * 3_600_000);
+  });
+});
+
+describe("music performance", () => {
+  it("has the expected stage roles", () => {
+    expect(STAGE_ROLES).toContain("Vocalist");
+    expect(STAGE_ROLES.length).toBe(5);
+  });
+
+  it("returns 0 for an empty repertoire", () => {
+    expect(performanceQuality([], 10)).toBe(0);
+  });
+
+  it("rewards rehearsal and showmanship", () => {
+    const raw = performanceQuality([{ quality: 80, rehearsal: 0 }], 0);
+    const rehearsed = performanceQuality([{ quality: 80, rehearsal: 100 }], 0);
+    const withShow = performanceQuality([{ quality: 80, rehearsal: 100 }], 20);
+    expect(rehearsed).toBeGreaterThan(raw);
+    expect(withShow).toBeGreaterThan(rehearsed);
+    expect(withShow).toBeLessThanOrEqual(100);
   });
 });

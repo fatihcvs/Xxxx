@@ -5,3 +5,4 @@ export * from "./skills";
 export * from "./song";
 export * from "./concert";
 export * from "./progression";
+export * from "./music";

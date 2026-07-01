@@ -13,6 +13,11 @@ import {
   needsHospital,
   learnHours,
   learningFinishesAt,
+  composeSong,
+  runConcert,
+  performanceQuality,
+  REHEARSAL_PER_SESSION,
+  STAGE_ROLES,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -333,5 +338,235 @@ export async function rentApartmentAction(formData: FormData): Promise<void> {
     },
   });
   revalidatePath(`/${locale}/locale/${localeId}`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Music career (bands, songs, concerts)
+// ---------------------------------------------------------------------------
+
+/** Fetch a character's level for a named skill (0 if not learned). */
+async function skillLevelByName(characterId: string, skillName: string): Promise<number> {
+  const skill = await prisma.skill.findUnique({ where: { name: skillName } });
+  if (!skill) return 0;
+  const cs = await prisma.characterSkill.findUnique({
+    where: { characterId_skillId: { characterId, skillId: skill.id } },
+  });
+  return cs?.level ?? 0;
+}
+
+async function attributeLevelByName(characterId: string, attribute: string): Promise<number> {
+  const a = await prisma.characterAttribute.findUnique({
+    where: { characterId_attribute: { characterId, attribute } },
+  });
+  return a?.level ?? 0;
+}
+
+/** The character's active band membership (with band), or null. */
+async function activeBandMembership(characterId: string) {
+  return prisma.bandMembership.findFirst({
+    where: { characterId },
+    include: { band: { include: { genre: true } } },
+  });
+}
+
+const createBandSchema = z.object({
+  name: z.string().min(1).max(60),
+  genreId: z.string().min(1),
+  locale: z.string().default("en"),
+});
+
+/** Create a band; the founder becomes leader with a 100% revenue share. */
+export async function createBandAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { name, genreId, locale } = createBandSchema.parse({
+    name: formData.get("name"),
+    genreId: formData.get("genreId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  const existing = await activeBandMembership(c.id);
+  if (existing) return;
+
+  const genre = await prisma.genre.findUnique({ where: { id: genreId } });
+  if (!genre) throw new Error("Unknown genre");
+
+  await prisma.band.create({
+    data: {
+      name,
+      cityId: c.currentCityId,
+      genreId,
+      members: {
+        create: { characterId: c.id, role: STAGE_ROLES[0], share: 1, isLeader: true },
+      },
+    },
+  });
+  revalidatePath(`/${locale}/band`);
+}
+
+export async function leaveBandAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  const membership = await activeBandMembership(c.id);
+  if (!membership) return;
+  await prisma.bandMembership.delete({ where: { id: membership.id } });
+  revalidatePath(`/${locale}/band`);
+}
+
+/** Compose a new song for the character's band from their creative skills. */
+export async function composeSongAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+  const membership = await activeBandMembership(c.id);
+  if (!membership) return;
+
+  const genreName = membership.band.genre?.name ?? "Rock";
+  const [composing, lyrics, genre, creativity] = await Promise.all([
+    skillLevelByName(c.id, "Basic Composing"),
+    skillLevelByName(c.id, "Basic Lyrics"),
+    skillLevelByName(c.id, genreName),
+    attributeLevelByName(c.id, "creativity"),
+  ]);
+
+  const song = composeSong({ composing, lyrics, genre, creativity });
+  await prisma.$transaction([
+    prisma.song.create({
+      data: {
+        title: song.title,
+        bandId: membership.bandId,
+        quality: song.quality,
+        lyricsQuality: song.lyricsQuality,
+      },
+    }),
+    prisma.characterMeter.update({
+      where: { characterId_kind: { characterId: c.id, kind: MeterKind.ENERGY } },
+      data: { value: { decrement: 8 }, anchorAt: new Date() },
+    }),
+  ]);
+  revalidatePath(`/${locale}/band`);
+}
+
+const rehearseSchema = z.object({ songId: z.string(), locale: z.string() });
+
+/** Rehearse a song: raise its rehearsal level, spend energy. */
+export async function rehearseSongAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { songId, locale } = rehearseSchema.parse({
+    songId: formData.get("songId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+  const membership = await activeBandMembership(c.id);
+  if (!membership) return;
+  const song = await prisma.song.findUnique({ where: { id: songId } });
+  if (!song || song.bandId !== membership.bandId) return;
+
+  const next = Math.min(100, song.rehearsal + REHEARSAL_PER_SESSION);
+  await prisma.$transaction([
+    prisma.song.update({ where: { id: songId }, data: { rehearsal: next } }),
+    prisma.characterMeter.update({
+      where: { characterId_kind: { characterId: c.id, kind: MeterKind.ENERGY } },
+      data: { value: { decrement: 10 }, anchorAt: new Date() },
+    }),
+  ]);
+  revalidatePath(`/${locale}/band`);
+}
+
+const performSchema = z.object({
+  venueId: z.string(),
+  ticketPrice: z.coerce.number().int().min(0).max(1000),
+  locale: z.string().default("en"),
+});
+
+/**
+ * Perform a concert now at a venue in the current city. Attendance/revenue/
+ * review come from the engine; fame and star value rise, revenue is split by
+ * member share, and performing costs the character energy/health.
+ */
+export async function performConcertAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { venueId, ticketPrice, locale } = performSchema.parse({
+    venueId: formData.get("venueId"),
+    ticketPrice: formData.get("ticketPrice"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+
+  const membership = await prisma.bandMembership.findFirst({
+    where: { characterId: c.id },
+    include: { band: { include: { members: true, songs: true } } },
+  });
+  if (!membership) return;
+  const band = membership.band;
+  if (band.songs.length === 0) return;
+
+  const venue = await prisma.locale.findUnique({ where: { id: venueId } });
+  if (!venue || venue.cityId !== c.currentCityId || venue.capacity <= 0) return;
+  const city = await prisma.city.findUnique({ where: { id: venue.cityId } });
+  if (!city) return;
+
+  const showmanship = await skillLevelByName(c.id, "Basic Showmanship");
+  const quality = performanceQuality(
+    band.songs.map((s) => ({ quality: s.quality, rehearsal: s.rehearsal })),
+    showmanship,
+  );
+
+  const outcome = runConcert({
+    fame: band.fame,
+    venueCapacity: venue.capacity,
+    cityReach: city.reach,
+    ticketPrice,
+    performanceQuality: quality,
+  });
+
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    await tx.concert.create({
+      data: {
+        bandId: band.id,
+        localeId: venue.id,
+        scheduledAt: now,
+        ticketPrice,
+        attendance: outcome.attendance,
+        revenue: outcome.revenue,
+        reviewScore: outcome.reviewScore,
+        played: true,
+      },
+    });
+    await tx.band.update({
+      where: { id: band.id },
+      data: { fame: Math.min(100, band.fame + outcome.fameDelta) },
+    });
+    // Split revenue by member share and raise each member's star value.
+    for (const m of band.members) {
+      const cut = Math.round(outcome.revenue * m.share);
+      await tx.character.update({
+        where: { id: m.characterId },
+        data: { money: { increment: cut }, starValue: { increment: outcome.fameDelta } },
+      });
+      if (cut > 0) {
+        await tx.transaction.create({
+          data: { characterId: m.characterId, amount: cut, type: TxnType.CONCERT, memo: `Concert @ ${venue.name}` },
+        });
+      }
+    }
+    // Performing is tiring for the acting character.
+    const meters = await tx.characterMeter.findMany({ where: { characterId: c.id } });
+    for (const kind of [MeterKind.MOOD, MeterKind.HEALTH, MeterKind.ENERGY] as const) {
+      const row = meters.find((m) => m.kind === kind);
+      if (!row) continue;
+      const delta =
+        kind === MeterKind.MOOD ? outcome.moodDelta : kind === MeterKind.HEALTH ? outcome.healthDelta : -20;
+      const value = clampMeter(currentMeter(row, now) + delta);
+      await tx.characterMeter.update({
+        where: { characterId_kind: { characterId: c.id, kind } },
+        data: { value, anchorAt: now },
+      });
+    }
+  });
+  revalidatePath(`/${locale}/band`);
   revalidatePath(`/${locale}`, "layout");
 }
