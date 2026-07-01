@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -19,6 +19,8 @@ import {
   REHEARSAL_PER_SESSION,
   STAGE_ROLES,
   inheritedAttributeLevel,
+  vipLearningMultiplier,
+  MAX_TAX_RATE,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -255,7 +257,7 @@ export async function studyBookAction(formData: FormData): Promise<void> {
   if (fromLevel >= owned.book.maxTeachLevel) return;
 
   const intel = await intelligenceLevel(c.id);
-  const hours = learnHours(fromLevel, intel);
+  const hours = learnHours(fromLevel, intel) * vipLearningMultiplier(await isVip(userId));
   await prisma.learningTask.create({
     data: {
       characterId: c.id,
@@ -267,6 +269,12 @@ export async function studyBookAction(formData: FormData): Promise<void> {
   });
   revalidatePath(`/${locale}/attributes`);
   revalidatePath(`/${locale}`, "layout");
+}
+
+/** Whether the account currently has active VIP. */
+async function isVip(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { vipUntil: true } });
+  return !!user?.vipUntil && user.vipUntil.getTime() > Date.now();
 }
 
 const enrollSchema = z.object({ courseId: z.string(), locale: z.string() });
@@ -736,4 +744,194 @@ export async function haveChildAction(formData: FormData): Promise<void> {
     },
   });
   revalidatePath(`/${locale}/relationships`);
+}
+
+// ---------------------------------------------------------------------------
+// Real estate, business & politics (Faz 6)
+// ---------------------------------------------------------------------------
+
+const PROPERTY_CATALOG = {
+  HOME: { name: "Own apartment", price: 5000, weeklyIncome: 0 },
+  RENTAL: { name: "Rental apartment", price: 8000, weeklyIncome: 200 },
+} as const;
+
+const buyPropertySchema = z.object({
+  kind: z.nativeEnum(PropertyKind),
+  locale: z.string().default("en"),
+});
+
+/** Buy a HOME (cancels weekly rent) or a RENTAL (weekly income). */
+export async function buyPropertyAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = buyPropertySchema.safeParse({
+    kind: formData.get("kind"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const { kind, locale } = parsed.data;
+  const spec = PROPERTY_CATALOG[kind];
+
+  const c = await loadLivingCharacter(userId);
+  if (c.money < spec.price) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.character.update({ where: { id: c.id }, data: { money: { decrement: spec.price } } });
+    await tx.transaction.create({
+      data: { characterId: c.id, amount: -spec.price, type: TxnType.PURCHASE, memo: `Property: ${spec.name}` },
+    });
+    await tx.property.create({
+      data: {
+        ownerId: c.id,
+        cityId: c.currentCityId,
+        name: spec.name,
+        kind,
+        purchasePrice: spec.price,
+        weeklyIncome: spec.weeklyIncome,
+        lastPaidGameAt: worldClock.toGameTime(),
+      },
+    });
+    // Owning a home ends any active apartment rental.
+    if (kind === PropertyKind.HOME) {
+      await tx.rentContract.updateMany({
+        where: { characterId: c.id, active: true },
+        data: { active: false },
+      });
+    }
+  });
+  revalidatePath(`/${locale}/estate`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+const BUSINESS_CATALOG: Record<string, { price: number; base: number }> = {
+  Cafe: { price: 2000, base: 250 },
+  Studio: { price: 5000, base: 500 },
+  Club: { price: 10000, base: 900 },
+};
+
+const foundBusinessSchema = z.object({
+  type: z.string(),
+  name: z.string().min(1).max(60),
+  locale: z.string().default("en"),
+});
+
+/** Found a business that pays weekly profit (minus city tax) via the worker. */
+export async function foundBusinessAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = foundBusinessSchema.safeParse({
+    type: formData.get("type"),
+    name: formData.get("name"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const spec = BUSINESS_CATALOG[parsed.data.type];
+  if (!spec) return;
+
+  const c = await loadLivingCharacter(userId);
+  if (c.money < spec.price) return;
+
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: spec.price } } }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -spec.price, type: TxnType.PURCHASE, memo: `Business: ${parsed.data.name}` },
+    }),
+    prisma.business.create({
+      data: {
+        ownerId: c.id,
+        cityId: c.currentCityId,
+        name: parsed.data.name,
+        type: parsed.data.type,
+        value: spec.price,
+        baseWeeklyProfit: spec.base,
+        lastPaidGameAt: worldClock.toGameTime(),
+      },
+    }),
+  ]);
+  revalidatePath(`/${parsed.data.locale}/estate`);
+  revalidatePath(`/${parsed.data.locale}`, "layout");
+}
+
+async function openElectionForCity(cityId: string) {
+  return prisma.election.findFirst({
+    where: { cityId, resolved: false },
+    orderBy: { closesAtGame: "desc" },
+  });
+}
+
+/** Stand as a candidate in the character's city election. */
+export async function runForMayorAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  const election = await openElectionForCity(c.currentCityId);
+  if (!election) return;
+  await prisma.candidacy.upsert({
+    where: { electionId_characterId: { electionId: election.id, characterId: c.id } },
+    update: {},
+    create: { electionId: election.id, characterId: c.id },
+  });
+  revalidatePath(`/${locale}/politics`);
+}
+
+const voteSchema = z.object({ candidacyId: z.string(), locale: z.string() });
+
+/** Cast one vote in the current city election. */
+export async function voteAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { candidacyId, locale } = voteSchema.parse({
+    candidacyId: formData.get("candidacyId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  const candidacy = await prisma.candidacy.findUnique({ where: { id: candidacyId } });
+  if (!candidacy) return;
+  const election = await prisma.election.findUnique({ where: { id: candidacy.electionId } });
+  if (!election || election.resolved || election.cityId !== c.currentCityId) return;
+
+  const already = await prisma.vote.findUnique({
+    where: { electionId_voterId: { electionId: election.id, voterId: c.id } },
+  });
+  if (already) return;
+
+  await prisma.$transaction([
+    prisma.vote.create({ data: { electionId: election.id, voterId: c.id, candidacyId } }),
+    prisma.candidacy.update({ where: { id: candidacyId }, data: { votes: { increment: 1 } } }),
+  ]);
+  revalidatePath(`/${locale}/politics`);
+}
+
+const taxSchema = z.object({ rate: z.coerce.number().min(0).max(MAX_TAX_RATE), locale: z.string() });
+
+/** Mayor sets the city tax rate (applied to business profit). */
+export async function setTaxRateAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = taxSchema.safeParse({
+    rate: formData.get("rate"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const c = await loadLivingCharacter(userId);
+  const city = await prisma.city.findUnique({ where: { id: c.currentCityId } });
+  if (!city || city.mayorId !== c.id) return;
+  await prisma.city.update({ where: { id: city.id }, data: { taxRate: parsed.data.rate } });
+  revalidatePath(`/${parsed.data.locale}/politics`);
+}
+
+const VIP_PRICE = 3000;
+const VIP_DAYS = 30;
+
+/** Buy VIP for in-game money: faster learning and a status badge for 30 real days. */
+export async function goVipAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.money < VIP_PRICE) return;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { vipUntil: true } });
+  const base = user?.vipUntil && user.vipUntil.getTime() > Date.now() ? user.vipUntil.getTime() : Date.now();
+  const vipUntil = new Date(base + VIP_DAYS * 24 * 3_600_000);
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: VIP_PRICE } } }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -VIP_PRICE, type: TxnType.PURCHASE, memo: "VIP membership" },
+    }),
+    prisma.user.update({ where: { id: userId }, data: { vipUntil } }),
+  ]);
+  revalidatePath(`/${locale}`, "layout");
 }

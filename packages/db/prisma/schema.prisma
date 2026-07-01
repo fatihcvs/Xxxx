@@ -53,10 +53,18 @@ model City {
   timezone  String  @default("UTC")
   reach     Int     @default(5000) // potential local audience
 
+  // Politics: current mayor and the tax rate they set (0..0.25).
+  taxRate Float   @default(0)
+  mayorId String?
+  mayor   Character? @relation("Mayor", fields: [mayorId], references: [id])
+
   locales      Locale[]
   bornHere     Character[] @relation("BornCity")
   presentHere  Character[] @relation("CurrentCity")
   bands        Band[]
+  properties   Property[]
+  businesses   Business[]
+  elections    Election[]
 
   @@unique([name, countryId])
 }
@@ -152,6 +160,12 @@ model Character {
   relationsTo   Relationship[] @relation("RelTo")
   messagesSent     Message[] @relation("MsgFrom")
   messagesReceived Message[] @relation("MsgTo")
+
+  properties  Property[]
+  businesses  Business[]
+  mayoralCities City[]     @relation("Mayor")
+  candidacies Candidacy[]
+  votes       Vote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -478,4 +492,85 @@ model Message {
   readAt   DateTime?
 
   @@index([toId, sentAt])
+}
+
+// ---------------------------------------------------------------------------
+// Real estate, business & politics (Faz 6)
+// ---------------------------------------------------------------------------
+
+enum PropertyKind {
+  HOME   // owning a home removes weekly rent
+  RENTAL // yields weekly rental income to the owner
+}
+
+model Property {
+  id             String       @id @default(cuid())
+  ownerId        String
+  owner          Character    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cityId         String
+  city           City         @relation(fields: [cityId], references: [id])
+  name           String
+  kind           PropertyKind
+  purchasePrice  Int
+  weeklyIncome   Int          @default(0) // for RENTAL
+  lastPaidGameAt DateTime
+  createdAt      DateTime     @default(now())
+
+  @@index([ownerId])
+}
+
+model Business {
+  id               String    @id @default(cuid())
+  ownerId          String
+  owner            Character @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cityId           String
+  city             City      @relation(fields: [cityId], references: [id])
+  name             String
+  type             String
+  value            Int
+  baseWeeklyProfit Int
+  lastPaidGameAt   DateTime
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+
+  @@index([ownerId])
+  @@index([active])
+}
+
+model Election {
+  id          String      @id @default(cuid())
+  cityId      String
+  city        City        @relation(fields: [cityId], references: [id])
+  opensAtGame DateTime
+  closesAtGame DateTime
+  resolved    Boolean     @default(false)
+  winnerId    String?
+  candidacies Candidacy[]
+  votes       Vote[]
+
+  @@index([cityId, resolved])
+}
+
+model Candidacy {
+  id          String    @id @default(cuid())
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  votes       Int       @default(0)
+  voteRecords Vote[]
+
+  @@unique([electionId, characterId])
+}
+
+model Vote {
+  id          String    @id @default(cuid())
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  voterId     String
+  voter       Character @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  candidacyId String
+  candidacy   Candidacy @relation(fields: [candidacyId], references: [id], onDelete: Cascade)
+
+  @@unique([electionId, voterId])
 }

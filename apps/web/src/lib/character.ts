@@ -27,6 +27,7 @@ export interface CharacterView {
   currentLocaleId: string | null;
   currentLocaleName: string | null;
   hospitalized: boolean;
+  vip: boolean;
   meters: { mood: number; health: number; energy: number };
 }
 
@@ -47,6 +48,7 @@ export async function getCharacterForUser(userId: string): Promise<CharacterView
       cityBorn: true,
       currentCity: true,
       currentLocale: true,
+      user: { select: { vipUntil: true } },
     },
   });
   if (!c) return null;
@@ -75,6 +77,7 @@ export async function getCharacterForUser(userId: string): Promise<CharacterView
     currentLocaleId: c.currentLocaleId,
     currentLocaleName: c.currentLocale?.name ?? null,
     hospitalized,
+    vip: !!c.user?.vipUntil && c.user.vipUntil.getTime() > now.getTime(),
     meters: {
       mood: mood ? Math.round(currentMeter(mood, now)) : 0,
       health: health ? Math.round(currentMeter(health, now)) : 0,

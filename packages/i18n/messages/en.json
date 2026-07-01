@@ -12,6 +12,8 @@
     "charts": "Charts",
     "relationships": "Relationships",
     "messages": "Messages",
+    "estate": "Estate & Business",
+    "politics": "Politics",
     "finances": "Finances",
     "settings": "Settings",
     "logout": "Log out"
@@ -175,6 +177,40 @@
     "send": "Send",
     "inbox": "Inbox",
     "empty": "No messages."
+  },
+  "estate": {
+    "realEstate": "Real estate",
+    "buyHome": "Buy a home",
+    "buyRental": "Buy a rental",
+    "ownedHome": "your home",
+    "perWeek": "/wk",
+    "business": "Business",
+    "bizName": "Name",
+    "bizType": "Type",
+    "found": "Found",
+    "vip": "VIP membership",
+    "vipInfo": "Learn skills faster and get a VIP badge.",
+    "goVip": "Go VIP",
+    "vipActive": "VIP active until {date}."
+  },
+  "politics": {
+    "cityHall": "{city} city hall",
+    "mayor": "Mayor",
+    "vacant": "vacant",
+    "taxRate": "Tax rate",
+    "mayorPanel": "Mayor's office",
+    "setTax": "Set tax rate (0–0.25)",
+    "apply": "Apply",
+    "taxHint": "Tax is applied to business profit in your city.",
+    "election": "Election",
+    "noElection": "No election running right now.",
+    "noCandidates": "No candidates yet. Be the first to run.",
+    "votes": "votes",
+    "vote": "Vote",
+    "voted": "voted",
+    "runForMayor": "Run for mayor",
+    "youAreCandidate": "You are running in this election.",
+    "role": "Mayor"
   },
   "common": {
     "years": "yrs"

@@ -12,6 +12,8 @@
     "charts": "Sıralamalar",
     "relationships": "İlişkiler",
     "messages": "Mesajlar",
+    "estate": "Mülk & İşletme",
+    "politics": "Politika",
     "finances": "Finans",
     "settings": "Ayarlar",
     "logout": "Çıkış yap"
@@ -175,6 +177,40 @@
     "send": "Gönder",
     "inbox": "Gelen kutusu",
     "empty": "Mesaj yok."
+  },
+  "estate": {
+    "realEstate": "Gayrimenkul",
+    "buyHome": "Ev satın al",
+    "buyRental": "Kiralık daire al",
+    "ownedHome": "evin",
+    "perWeek": "/hafta",
+    "business": "İşletme",
+    "bizName": "Ad",
+    "bizType": "Tür",
+    "found": "Kur",
+    "vip": "VIP üyelik",
+    "vipInfo": "Yetenekleri daha hızlı öğren ve VIP rozeti kazan.",
+    "goVip": "VIP ol",
+    "vipActive": "VIP {date} tarihine kadar aktif."
+  },
+  "politics": {
+    "cityHall": "{city} belediyesi",
+    "mayor": "Belediye başkanı",
+    "vacant": "boş",
+    "taxRate": "Vergi oranı",
+    "mayorPanel": "Başkanlık makamı",
+    "setTax": "Vergi oranını ayarla (0–0.25)",
+    "apply": "Uygula",
+    "taxHint": "Vergi, şehrindeki işletme kârına uygulanır.",
+    "election": "Seçim",
+    "noElection": "Şu an aktif seçim yok.",
+    "noCandidates": "Henüz aday yok. İlk aday sen ol.",
+    "votes": "oy",
+    "vote": "Oy ver",
+    "voted": "oy verildi",
+    "runForMayor": "Başkanlığa aday ol",
+    "youAreCandidate": "Bu seçimde adaysın.",
+    "role": "Başkan"
   },
   "common": {
     "years": "yaş"

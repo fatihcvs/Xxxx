@@ -21,6 +21,8 @@ import {
   annualDeathProbability,
   deathProbabilityOverWeeks,
   inheritedAttributeLevel,
+  businessProfitForWeek,
+  vipLearningMultiplier,
 } from "../index";
 
 describe("WorldClock", () => {
@@ -203,5 +205,19 @@ describe("aging & inheritance", () => {
     expect(child).toBeGreaterThanOrEqual(1);
     expect(child).toBeLessThanOrEqual(10);
     expect(inheritedAttributeLevel(0, () => 0)).toBe(1);
+  });
+});
+
+describe("business & VIP", () => {
+  it("weekly profit scales with base and falls with tax", () => {
+    const noTax = businessProfitForWeek({ base: 1000, taxRate: 0, rng: () => 0.5 });
+    const taxed = businessProfitForWeek({ base: 1000, taxRate: 0.25, rng: () => 0.5 });
+    expect(noTax).toBeGreaterThan(taxed);
+    expect(businessProfitForWeek({ base: 0, taxRate: 0, rng: () => 0.5 })).toBe(0);
+  });
+
+  it("VIP learns faster", () => {
+    expect(vipLearningMultiplier(true)).toBeLessThan(vipLearningMultiplier(false));
+    expect(vipLearningMultiplier(false)).toBe(1);
   });
 });

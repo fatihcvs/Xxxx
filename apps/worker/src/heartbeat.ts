@@ -1,4 +1,4 @@
-import { prisma, MeterKind, TxnType, LearningState, ReleaseType } from "@fameworld/db";
+import { prisma, MeterKind, TxnType, LearningState, ReleaseType, PropertyKind } from "@fameworld/db";
 import {
   needsHospital,
   worldClockFromEnv,
@@ -10,10 +10,13 @@ import {
   updateChartScore,
   RELEASE_RETIRE_SCORE,
   deathProbabilityOverWeeks,
+  businessProfitForWeek,
   PAYDAY_XP,
   STUDY_XP,
   type MeterState,
 } from "@fameworld/game-engine";
+
+const ELECTION_WINDOW_WEEKS = 2;
 
 const ROYALTY_PER_SALE = 2;
 
@@ -35,6 +38,10 @@ export interface HeartbeatResult {
   releasesRetired: number;
   deaths: number;
   heirsPromoted: number;
+  rentalIncome: number;
+  businessProfits: number;
+  electionsResolved: number;
+  electionsOpened: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -298,11 +305,97 @@ async function sweepAging(nowGame: Date): Promise<{ deaths: number; heirsPromote
   return { deaths, heirsPromoted };
 }
 
+/** Pay weekly rental income from RENTAL properties to their owners. */
+async function sweepProperties(nowGame: Date): Promise<number> {
+  const rentals = await prisma.property.findMany({ where: { kind: PropertyKind.RENTAL } });
+  let paidCount = 0;
+  for (const p of rentals) {
+    const weeks = gameWeeksBetween(p.lastPaidGameAt, nowGame);
+    if (weeks <= 0 || p.weeklyIncome <= 0) continue;
+    const amount = p.weeklyIncome * weeks;
+    await prisma.$transaction([
+      prisma.character.update({ where: { id: p.ownerId }, data: { money: { increment: amount } } }),
+      prisma.transaction.create({
+        data: { characterId: p.ownerId, amount, type: TxnType.OTHER, memo: `Rental income: ${p.name}` },
+      }),
+      prisma.property.update({ where: { id: p.id }, data: { lastPaidGameAt: nowGame } }),
+    ]);
+    paidCount += 1;
+  }
+  return paidCount;
+}
+
+/** Pay weekly business profit (minus the city tax rate) to owners. */
+async function sweepBusinesses(nowGame: Date): Promise<number> {
+  const businesses = await prisma.business.findMany({
+    where: { active: true },
+    include: { city: true },
+  });
+  let paidCount = 0;
+  for (const b of businesses) {
+    const weeks = gameWeeksBetween(b.lastPaidGameAt, nowGame);
+    if (weeks <= 0) continue;
+    let profit = 0;
+    for (let w = 0; w < weeks; w++) {
+      profit += businessProfitForWeek({ base: b.baseWeeklyProfit, taxRate: b.city.taxRate });
+    }
+    await prisma.$transaction([
+      prisma.character.update({ where: { id: b.ownerId }, data: { money: { increment: profit } } }),
+      prisma.transaction.create({
+        data: { characterId: b.ownerId, amount: profit, type: TxnType.OTHER, memo: `Business: ${b.name}` },
+      }),
+      prisma.business.update({ where: { id: b.id }, data: { lastPaidGameAt: nowGame } }),
+    ]);
+    if (profit > 0) paidCount += 1;
+  }
+  return paidCount;
+}
+
+/** Resolve closed elections (elect the mayor) and open a new one where none is running. */
+async function sweepElections(nowGame: Date): Promise<{ resolved: number; opened: number }> {
+  let resolved = 0;
+  let opened = 0;
+
+  const due = await prisma.election.findMany({
+    where: { resolved: false, closesAtGame: { lte: nowGame } },
+    include: { candidacies: { orderBy: { votes: "desc" } } },
+  });
+  for (const e of due) {
+    const winner = e.candidacies[0];
+    await prisma.$transaction(async (tx) => {
+      await tx.election.update({
+        where: { id: e.id },
+        data: { resolved: true, winnerId: winner?.characterId ?? null },
+      });
+      if (winner) {
+        await tx.city.update({ where: { id: e.cityId }, data: { mayorId: winner.characterId } });
+      }
+    });
+    resolved += 1;
+  }
+
+  // Open an election in any city that has none running.
+  const cities = await prisma.city.findMany({ select: { id: true } });
+  for (const city of cities) {
+    const open = await prisma.election.count({
+      where: { cityId: city.id, resolved: false },
+    });
+    if (open === 0) {
+      const closesAtGame = new Date(nowGame.getTime() + ELECTION_WINDOW_WEEKS * 7 * 24 * 3_600_000);
+      await prisma.election.create({
+        data: { cityId: city.id, opensAtGame: nowGame, closesAtGame },
+      });
+      opened += 1;
+    }
+  }
+  return { resolved, opened };
+}
+
 /**
  * Global sweep over the living world. Meters derive from anchors on read, so
  * the heartbeat flips hospitalisation, completes timed learning, pays weekly
- * salaries on in-game Fridays, charges apartment rent, accrues record sales and
- * ages characters (death → heir).
+ * salaries on in-game Fridays, charges apartment rent, accrues record sales,
+ * ages characters (death → heir), pays rental/business income and runs elections.
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
@@ -312,6 +405,9 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const rent = await sweepRent(nowGame);
   const releases = await sweepReleases(nowGame);
   const aging = await sweepAging(nowGame);
+  const rentalIncome = await sweepProperties(nowGame);
+  const businessProfits = await sweepBusinesses(nowGame);
+  const elections = await sweepElections(nowGame);
   return {
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
@@ -324,5 +420,9 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
     releasesRetired: releases.releasesRetired,
     deaths: aging.deaths,
     heirsPromoted: aging.heirsPromoted,
+    rentalIncome,
+    businessProfits,
+    electionsResolved: elections.resolved,
+    electionsOpened: elections.opened,
   };
 }

@@ -22,8 +22,13 @@ export async function StatusBar({ character }: { character: CharacterView }) {
     <header className="panel mb-4">
       <div className="panel-body flex flex-wrap items-center gap-x-6 gap-y-3">
         <div className="mr-auto">
-          <div className="font-semibold">
+          <div className="font-semibold flex items-center gap-2">
             {character.firstName} {character.lastName}
+            {character.vip && (
+              <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+                VIP
+              </span>
+            )}
           </div>
           <div className="text-xs text-ink/60">
             {t("age")}: {character.age} · {character.currentCityName}
