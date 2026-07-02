@@ -1,213 +1,220 @@
-# Fameworld — Popmundo Tam Parite Yol Haritası (A→Z)
+# Fameworld — Popmundo Tam Parite Yol Haritası (A→Z, Birebir Klon Etabı)
 
-> **Amaç:** Popmundo'nun **tüm** oyun sistemlerini (mekanik ve akış düzeyinde)
-> Fameworld'de yeniden inşa etmek. Bu belge, Popmundo'daki her sistemi listeler,
-> **mevcut durumu** (✅ yapıldı / 🟡 kısmi / ◻︎ eksik) işaretler ve kalan işi
-> **fazlara** böler.
+> **Güncel hedef (kullanıcı kararı):** İlk etapta oyun **ismi hariç** Popmundo ile
+> **birebir aynı** olacak — ekran yapısı, sayfa düzeni, navigasyon, akışlar ve
+> mekanikler dahil. Görsel dil aynı hissi verir; **logo/görsel/metin/veri içerikleri
+> telif gereği özgün yeniden üretilir** (yapı ve düzen birebir, varlıklar özgün).
+> Tam klon tamamlandıktan sonra özgünleştirme etabı başlar.
 >
-> **Özgünlük:** Yalnızca mekanikler/akışlar klonlanır (fikirler telif dışıdır).
-> Hiçbir metin/logo/görsel/veri tablosu birebir kopyalanmaz; isim havuzları,
-> şarkı başlıkları vb. özgün üretilir; şarkı sözü hiç üretilmez.
+> Yapı envanteri kaynağı: oynanan gerçek oyundan kaydedilmiş **46 sayfa**
+> (karakter bölümünün ~30 alt sayfası, şehir, mekânlar, sanatçı, dükkân, rehber,
+> sosyal, hesap). Ayrıntılı ekran/panel dökümü: `docs/DESIGN.md`.
 
 ---
 
-## 0. Mevcut Durum (Faz 0–7 TAMAMLANDI ve prod'a alındı)
-Gerçek zamanlı simülasyon (1 yıl = 56 gün), pnpm monorepo (web/worker/db/engine/i18n),
+## 0. Mevcut Durum
+
+**Mekanik çekirdek (Faz 0–10) tamamlandı** (0–9 prod'da, Faz 10 deploy bekliyor):
+gerçek zamanlı simülasyon (1 yıl = 56 gün), pnpm monorepo (web/worker/db/engine/i18n),
 Next.js + Postgres + Prisma + Auth.js + next-intl (TR/EN) + BullMQ worker.
+Kayıt/giriş, karakter oluşturma, 8 özellik + XP, mood/health/energy, hastane,
+şehir/mekân gezinme, iş + Cuma maaşı, zamanlı öğrenme + üniversite + usta/mentor +
+skill ağaçları (19 kategori), kira, grup + beste + prova + konser + ün, CD kayıt +
+haftalık satış + charts + telif + klip + yayın tazeliği/fame decay + şehir fan
+tabanı, ilişkiler + mesaj + çocuk + yaşlanma→ölüm→varis, gayrimenkul + işletme +
+seçim/vali + vergi + VIP, çoklu şehir + NPC dünya, admin, PR ajanı + röportaj +
+dedikodu + yıllık ödüller + fan kulübü + başarımlar (16 kupa).
 
-Çalışan çekirdek: kayıt/giriş, **karakter oluşturma (ad/soyad seçmeli + cinsiyet + doğum şehri)**,
-8 attribute + XP, mood/health/energy (gerçek zaman decay), hastane kuralı, şehir/mekan
-gezinme, dinlen/ye, **iş + Cuma maaşı**, **kitap→zamanlı öğrenme + üniversite kursu**,
-kira, **grup + şarkı bestele + prova + konser + ün**, **CD kayıt + haftalık satış + charts + telif**,
-**ilişkiler + mesaj + çocuk + yaşlanma→ölüm→varis**, **gayrimenkul + işletme + seçim/başkan + vergi + VIP**,
-**çoklu şehir + prosedürel NPC dünya**, admin paneli, /api/health, avatar, mobil menü.
+**Eksik olan:** klasik Popmundo arayüz iskeleti ve sayfa envanterinin tamamı.
+Mevcut UI modern/sade bir düzen kullanıyor; birebir klon hedefi için aşağıdaki
+**U-fazları** (UI + eksik sistemler birlikte, dikey dilimler) uygulanacak.
 
 ---
 
-## 1. POPMUNDO SİSTEMLERİ — PARİTE MATRİSİ
+## 1. U-FAZLARI — Birebir Klon Planı
+
+Her U-fazı: şema + engine + worker + UI (klasik iskelette) + i18n (TR/EN) + test +
+commit. Sıra, oyuncunun her gün dokunduğu yüzeyden dışarı doğru genişler.
+
+### Faz U0 — Klasik Arayüz Kabuğu (her şeyin temeli)
+- Sabit genişlik (~1000px) ortalanmış düzen; **iki kolon**: geniş içerik + sağda
+  **bağlam menüsü** (bölüme göre gruplu link listeleri, VIP öğeleri ★).
+- **Header:** logo; **oyun günü adı + saat**; enerji göstergesi; bildirim zili.
+- **Ana menü (9 öğe):** Şehir · Mekân · Karakter · Sanatçı · Şirket · Rehber ·
+  Sıralamalar · Sosyal · Dükkân.
+- **Geri bildirim satırı** (her aksiyonun tek satır sonucu) + "yeni bilgi yok" kalıbı.
+- Tipografi/palet: Lucida Grande/Verdana ~12px; beyaz zemin, gri kutular, mavi
+  linkler, sarı/turuncu vurgular. `table.data` yoğun tablo bileşeni; **sayı + sıfat**
+  seviye etiketleri; görünür ID rozetleri.
+- Mevcut tüm sayfalar bu kabuğa taşınır (route'lar korunur).
+- Karakter/sanatçı/mekân **üstbilgi blokları** (DESIGN.md B4–B6).
+
+### Faz U1 — Karakter Bölümü (5 menü grubu, ~33 sayfa)
+- **Karakter:** Genel Bilgiler (günlük özetleri + Yakın Takip + kıyafet/dövme
+  paneli), Başarılar (mevcut + "ilk üç seçimi"), **Günlük** (otomatik kayıt motoru:
+  her önemli olay günlüğe yazar), **Blog**, Geçmiş ve Diğer Bilgiler (biyografi),
+  Aile (ağaç UI), İlişkiler, **Beden ve Sağlık** (özellik tablosu + ruh
+  hâli/sağlık + hastalık/bağımlılık/ameliyat/dövme/bağışıklık panelleri —
+  şimdilik boş durumlar dahil), Oyuncu Bilgileri.
+- **Kariyer ve Aktivite:** **Odaklar** (boş zaman + kariyer odağı; pasif etkiler),
+  **Karakteri Geliştir** (haftalık **DP** sistemi: Pazar dağıtımı, özellik/yetenek
+  geliştirme maliyetleri), Davetiyeler ve İstekler, Yetenekler (kategori gruplu
+  0–100 + yıldız; gizli yetenek), **Şarkılar** (kişisel beste havuzu; gruba sunma),
+  Uçuşlar (iskelet), Etkinlikler, Görevler (iskelet), Partiler (iskelet),
+  Aktiviteler (spor salonu vb. mekân aktiviteleri), İstihdam, Öğrencilikler
+  (mevcut mentor sistemine sayfa), Kişilik ve Davranış (tavır + tur öncelikleri +
+  otel + groupie politikası), Tarifler (iskelet).
+- **Varlıklar:** Eşyalar (envanter + yük), Barınma ve Erişim Şifreleri, Ekonomi
+  (nakit + **faturalar** + banka hesapları/krediler), Araçlar (iskelet), Şirket
+  Hisseleri (iskelet).
+- **Ticaret:** Alışveriş Yardımcısı (ürün arama), Hediyeler ve Teklifler.
+- **Ekstralar:** Ayarlar ve İzinler, Kredi Ürünleri, Adres Defteri ★, Takvim ★,
+  Notlar ★, Portre, Kısayollar ★.
+- Model: `DiaryEntry`, `BlogPost`, `CharacterFocus`, `DevelopmentPoint`,
+  `Invitation`, `Item`+`Inventory`, `BankAccount`, `Loan`, `Bill`, `GiftOffer`,
+  `PermissionSet`, `Note`, `Bookmark`.
+
+### Faz U2 — Şehir & Mekân Bölümü
+- **Şehir ana sayfası:** nüfus; **Şehir 101** dizini (havaalanı, hastane, belediye,
+  adliye, otoyol, kayıp eşya, ibadet evi, spor salonu, otel); **önümüzdeki günler**
+  takvimi (tatil/etkinlik); **Vali diyor ki**; şehir makaleleri (basın entegre);
+  **şehir piyangosu**; **gelecek konserler** (bilet satışıyla); şehir seçici.
+- **Mekânlar sayfası:** arama + tür filtresi + liste.
+- **Mekân sayfası:** üstbilgi (tür/şehir/bölge/idare/kalite+durum/nakit),
+  **Yönetimin notu**, türe özel eylem panelleri, **Yer menüsü** (Genel Bilgi,
+  Çalışanlar, Eşyalar, Etkinlikler, Mekândaki Karakterler, Yönetim).
+- **Yeni mekân türleri:** adliye, hapishane, ibadet evi, havaalanı, otoyol, otel,
+  spor salonu, kayıp eşya bürosu, banka, giyim/müzik dükkânı, stüdyo.
+- **Şehir genişletme:** gerçek şehir seti (30+; Amsterdam'dan Manila'ya), ülke +
+  saat dilimi; **bölgeler** (mekânların semti).
+- Model: `District`, `CityEvent`, `Lottery`, `LocaleStaff`, `LocaleNote`,
+  LocaleType genişletmesi.
+
+### Faz U3 — Sanatçı Bölümü (6 menü grubu)
+- **Sanatçı:** Genel Bilgiler (klasman + tür sıralaması + kasa + hareketlilik
+  akışı + hayran mesajı + üyeler), Program, Yer Ayırtma Yardımcısı, Günlük,
+  Repertuvar (prova durumu), **Kayıt Kontratı** (plak şirketi sözleşmeleri),
+  **Popülerlik** (şehir şehir hayran dökümü — mevcut FanBase üstüne UI),
+  Televizyon Programları (iskelet), Ziyaret Edilen Şehirler.
+- **Konserler:** Performans Planı Düzenleyici (setlist), Gelecek/Son Konserler,
+  Konser Ayarla (ileri tarihli planlama + bilet ön satışı), Davetler.
+- **Yapımlar:** Kayıtlı Şarkılar, Diskografi, Klipler, Kayıt Partileri.
+- **Rodiler/Tur:** sahne ekipmanı, tur aracı, tur öncelikleri, ekip.
+- **Üyelere Özel:** üye/rol/pay yönetimi, **Nakit Parayı Yönet** (grup kasası),
+  Adaylar (başvuru sistemi).
+- **Şarkı Piyasası:** beste alım-satımı (teklifler, piyasa, alımlar).
+- Model: `RecordContract`, `Setlist`, `ScheduledConcert` (ön satış), `BandVault`,
+  `BandCandidate`, `SongListing`, `Tour`, `StageEquipment`.
+
+### Faz U4 — Şirket, Sıralamalar, Sosyal, Rehber, Dükkân, Hesap
+- **Şirket:** şirket sayfası (temel bilgiler + yönetim notu + çalışanlar/reyonlar/
+  ürünler), şirket kurma (VIP), vali talepleri, mekân haberleri.
+- **Sıralamalar:** liste kataloğu — şarkı/albüm, sanatçı, şehir en iyileri,
+  zenginler, yetenek liderleri (mevcut charts genişler).
+- **Sosyal:** sosyal kulüpler (organizasyonlar), **The Insider** makale akışı
+  (mevcut basın motoru genişler), global yarışmalar, haftalık görev turları.
+- **Rehber:** oyun rehberi içerik sistemi (konu başlıklı özgün rehber sayfaları).
+- **Dükkân:** VIP üyelik sayfası (avantaj listesi), kredi paketleri, kredi
+  ürünleri (ikramlar, ek içerik, yardımcılar).
+- **Hesap:** hesap ayrıntıları (kişisel bilgi, e-posta, diller).
+- Model: `Organization`, `GuideArticle`, `CreditProduct`, `Contest`, `TaskRound`.
+
+### Faz U5 — Suç, Sağlık, Din, Diğer Kariyerler (derin sistemler)
+- **Suç & Hukuk:** suç aksiyonları (şiddet 1–10), polis kariyeri, tutuklama →
+  adliye → hapishane; kayıp eşya bürosu döngüsü.
+- **Sağlık derinliği:** hastalıklar (bulaşma/tedavi), bağımlılıklar, ameliyatlar
+  (kozmetik dahil — Beden ve Sağlık sayfası dolar), aşılar/bağışıklıklar;
+  tıp kariyeri.
+- **Din/ibadet evi**, itfaiye, bilim, spor kariyer döngüleri; dövme sistemi.
+- Model: `Crime`, `Arrest`, `Trial`, `PrisonTerm`, `Disease`, `Addiction`,
+  `Surgery`, `Tattoo`, `Vaccination`.
+
+### Faz U6 — Cila & Denge (klon etabının sonu)
+- Katmanlı **portre** sistemi (özgün varlıklar), kıyafetlerin görünüme etkisi.
+- Ekonomi/ün/öğrenme eğrilerinin Popmundo ritmine kalibrasyonu (haftalık DP,
+  Cuma maaş, Pazar puan, 28/112 gün yayın ritmi zaten uyumlu).
+- Bildirim sistemi (zil), anlık sohbet iskeleti, moderasyon araçları.
+- **Bundan sonrası:** özgünleştirme etabı (kullanıcıyla birlikte ayrışma kararları).
+
+---
+
+## 2. MEKANİK PARİTE MATRİSİ (denetim listesi)
+
+Aşağıdaki matris U-fazlarına dağıtılmış eksiklerin sistem bazlı özetidir
+(✅ yapıldı / 🟡 kısmi / ◻︎ eksik):
 
 ### A. Karakter & Yaşam Döngüsü
-- 🟡 Attribute'lar (Popmundo: Charisma, Looks, Intelligence, Constitution… + türev). Bizde 8 attribute var; **isim/etki eşlemesi** derinleşmeli.
-- ✅ Mood & Health ölçerleri, hastane (<%15).
-- ✅ Energy / aksiyon enerjisi.
-- ◻︎ **Açlık/Susuzluk** ihtiyacı (ye/iç bunları besler; şu an sadece meter).
-- ✅ Yaş, doğum, ölüm, **varis** ile devam.
-- ◻︎ **Kişilik özellikleri** (personality traits) ve bunların etkileri.
-- 🟡 **Görünüm/portre sistemi** (bizde baş harfli avatar; Popmundo: katmanlı portre + kıyafet etkisi).
-- ◻︎ Uyku/dinlenme döngüsü, sağlık durumu bozulmaları (hastalık).
+- ✅ 8 özellik + XP; ✅ ruh hâli/sağlık/enerji + hastane; ✅ yaş/ölüm/varis.
+- ◻︎ Açlık/susuzluk; ◻︎ kişilik özellikleri (tavır) etkileri (U1);
+  🟡 portre (U6); ◻︎ hastalık/bağımlılık/ameliyat (U5); ◻︎ günlük/blog (U1);
+  ◻︎ odaklar + DP (U1).
 
-### B. Yetenekler & Eğitim (Popmundo: 19 kategori)
-Kategoriler: **Music, Musical Instrument, Music Genre, Stage & Performance, Social,
-Sexual, Criminal, Police, Medicine, Sports, Business, Spiritual, Artistic, Science,
-Firemen, Nature & Resources, Paranormal Sciences, Crafting, Miscellaneous.**
-- 🟡 Yetenek modeli var ama **5-yıldız (0–5) + Basic→ileri kademe** ağaçları eksik.
-- 🟡 Kitaptan **zamanlı öğrenme** + üniversite kursu var.
-- ◻︎ **Usta/Mentor** (master) ile öğrenme.
-- ◻︎ **Üniversite dereceleri**, sınavlar, diplomalar.
-- ◻︎ Tam **skill kataloğu** (yüzlerce yetenek, kademeli önkoşullar).
+### B. Yetenekler & Eğitim
+- ✅ 19 kategori katalog + 5★ + önkoşul + kitap + kurs + usta/mentor.
+- ◻︎ Üniversite dereceleri/sınav/diploma; ◻︎ DP ile geliştirme (U1);
+  ◻︎ gizli yetenek (U1).
 
-### C. Müzik Kariyeri (oyunun kalbi)
-- ◻︎ **Tür + 2 sahne rolü** seçimi (primary %80 / secondary %20).
-- ◻︎ **Enstrüman/rol hiyerarşisi** ve **4-yıldız geçiş kapısı** (ör. Basic String → Electric Guitar).
-- ◻︎ **17 tür** (African, Blues, Classical, Country & Western, Electronica, Flamenco, Heavy Metal, Hip Hop, Jazz, Latin, Modern Rock, Pop, Punk Rock, Reggae, Rhythm & Blues, Rock, World).
-- 🟡 Şarkı **bestele**; ◻︎ **söz kalitesi ağırlığı**, ◻︎ **jam/prova yüzdesi genre skill'e bağlı** (0 skill→%50, 5 yıldız→%100).
-- ✅ Repertuar, ✅ konser; ◻︎ **setlist/sahne olayları/showmanship** derinliği.
-- 🟡 Kayıt (single/album); ◻︎ **müzik klibi**, ◻︎ **yayın takvimi** (single+klip /28 gün, album /112 gün) ve **gecikince fame düşüşü**.
-- 🟡 Charts (global+şehir); ◻︎ **ulusal + tür bazlı** listeler, ◻︎ **radyo çalma**.
-- ◻︎ **Şehir bazlı fan tabanı**, ◻︎ **groupie'ler**, ◻︎ **turne**.
-- ◻︎ **Plak şirketi sözleşmeleri** (label ↔ band kontratları, avans, telif oranı).
-- ✅ Grup üyeleri/rol/pay; ◻︎ band sohbeti, band fame ayrıntısı.
+### C. Müzik Kariyeri
+- ✅ Tür + 2 sahne rolü (80/20), 17 tür, jam tavanı, konser, kayıt, klip, satış,
+  charts, telif, fame decay, şehir fan tabanı.
+- ◻︎ Kişisel şarkı havuzu + şarkı piyasası (U1/U3); ◻︎ setlist/performans planı
+  (U3); ◻︎ ileri tarihli konser + bilet ön satışı (U3); ◻︎ kayıt kontratı (U3);
+  ◻︎ turne/rodiler (U3); ◻︎ TV programları (U3); ◻︎ radyo (U3);
+  ◻︎ tür bazlı sıralama ("Rock #1509") (U3).
 
 ### D. Ün & Medya
-- 🟡 Star value / fame (temel). ◻︎ **Star value'nun groupie/klip/konser başarısına etkisi**.
-- ◻︎ **PR yöneticisi** + **Media Manipulation** yeteneği etkileri.
-- ◻︎ **Gazete/basın**, röportajlar, dedikodu.
-- ◻︎ **Ödül törenleri** (yıllık müzik ödülleri).
-- ◻︎ **Fan kulübü**, fan postası.
-- ◻︎ **Başarımlar/kupalar (achievements)** sistemi.
+- ✅ PR ajanı + röportaj + dedikodu + yıllık ödüller + fan kulübü + başarımlar.
+- ◻︎ The Insider makale akışı + şehir makaleleri (U2/U4); ◻︎ hayranlara mesaj
+  (U3); ◻︎ sanatçı hareketlilik akışı (U3); ◻︎ groupie politikası (U1).
 
 ### E. Ekonomi
-- ✅ Mekanlarda iş + **Cuma maaşı**.
-- 🟡 İşletme (VIP mantığı yok, **çalışan/ürün yok**). ◻︎ Şirket sayfaları, çalışan alma, ücret, ürün/stok.
-- ✅ Apartman kira/satın alma; ◻︎ **ev/mülk piyasası** (al-sat, fiyat dalgalanması), ◻︎ mülk türleri.
-- ◻︎ **Banka**: hesap, **kredi**, faiz, havale.
-- ◻︎ **Borsa/yatırım** (varsa).
-- 🟡 Alışveriş (sadece kitap). ◻︎ **Mağazalar + eşya çeşitliliği + envanter**.
-- ✅ Vergi (şehir vergisi işletme kârına).
+- ✅ İş/maaş, kira, mülk, işletme, vergi, VIP.
+- ◻︎ Banka hesabı + kredi + faturalar (U1); ◻︎ envanter/eşya + dükkân reyonları +
+  alışveriş yardımcısı (U1/U2); ◻︎ şirket çalışanları/ürünleri + hisseler (U4);
+  ◻︎ araçlar (U1); ◻︎ şehir piyangosu (U2).
 
 ### F. Sosyal & Topluluk
-- ✅ Adres defteri + ilişki seviyeleri; 🟡 **izin sistemi** (kim ne yapabilir).
-- 🟡 Arkadaş/partner; ◻︎ **flört → evlilik → boşanma** akışı.
-- ✅ Çocuk + varis; 🟡 **hamilelik zaman çizelgesi**, ◻︎ **aile ağacı UI**.
-- ✅ Mesajlaşma; ◻︎ **forumlar**, ◻︎ **topluluk sayfaları**, ◻︎ **blog/günlük (diary)**.
-- ◻︎ **Gruplar/organizasyonlar** (fan kulüpleri, dernekler).
-- 🟡 Sosyalleş; ◻︎ **hediyeler**, ◻︎ farklı etkileşim türleri (öv, hakaret, flört…).
+- ✅ İlişkiler, mesajlaşma, çocuk/varis; 🟡 izinler (U1'de tam).
+- ◻︎ Flört→evlilik→boşanma akışı (U1); ◻︎ aile ağacı UI (U1); ◻︎ partiler +
+  davetiyeler (U1); ◻︎ organizasyonlar/sosyal kulüpler (U4); ◻︎ günlük/blog/
+  ziyaretçi defteri (U1/U3); ◻︎ hediye/teklif sistemi (U1).
 
 ### G. Şehirler & Dünya
-- 🟡 4 kurgusal şehir. ◻︎ **Çok sayıda gerçek şehir** + ülkeler.
-- ◻︎ **Şehirler arası seyahat** (uçuş, süre, ücret, bagaj/enerji).
-- ✅ Mekan seti; ◻︎ **daha çok mekan türü** (stüdyo, radyo istasyonu, havaalanı, banka, mahkeme, hapishane, kilise…).
-- ◻︎ **Zaman dilimleri**, yerel müzik sahnesi/kültür.
-- 🟡 Politika: ✅ seçim/başkan/vergi; ◻︎ **belediye meclisi**, ◻︎ **yasalar/kararnameler**, ◻︎ **suç şiddet ayarları** başkan tarafından.
+- ✅ Çoklu şehir + NPC dünya + seçim/vali/vergi.
+- ◻︎ 30+ gerçek şehir + bölgeler + saat dilimi (U2); ◻︎ uçuşlar + havaalanı +
+  otoyol (U1/U2); ◻︎ şehir takvimi/etkinlikler + tatiller (U2); ◻︎ vali talepleri
+  + vali mesajı (U2); ◻︎ otel sistemi (U2).
 
-### H. Suç & Hukuk
-- ◻︎ **Suçlar** (şiddet 1–10): hırsızlık, gasp, dolandırıcılık, çeteler.
-- ◻︎ **Polis kariyeri**: devriye, tutuklama.
-- ◻︎ **Tutuklama → mahkeme → hapis**, kefalet, ceza süresi.
-- ◻︎ Suç yetenekleri (Criminal) ve Police yetenek ağaçları.
-
-### I. Sağlık & Yaşam Kalitesi
-- 🟡 Ye/iç (mood/health). ◻︎ **Açlık meter**, ◻︎ yiyecek/içecek çeşitliliği + etkileri.
-- ◻︎ **Uyuşturucu/bağımlılık**, ◻︎ **hastalık** (bulaşma, tedavi).
-- ◻︎ **Tıp kariyeri** (Medicine): doktor, hastanede tedavi hizmeti.
-
-### J. Diğer Kariyerler & Yetenek Ağaçları
-- ◻︎ **Spor** (Sports), ◻︎ **Bilim** (Science), ◻︎ **İtfaiye** (Firemen),
-  ◻︎ **Doğa/Kaynaklar** (Nature & Resources), ◻︎ **Paranormal**, ◻︎ **El sanatları** (Crafting),
-  ◻︎ **Ruhani/Din** (Spiritual): kilise, rahip, inanç.
-
-### K. Öğeler & Envanter
-- 🟡 Kitap. ◻︎ **Kıyafet** (looks etkisi), ◻︎ **enstrüman** (çalmak için gerekli), ◻︎ yiyecek/içecek,
-  ◻︎ **araç/taşıt**, ◻︎ hediyeler, ◻︎ tüketilebilirler, ◻︎ **crafting ile üretim**.
-
-### L. Sistem & Meta
-- 🟡 VIP (temel: hızlı öğrenme + rozet). ◻︎ **VIP perk seti** (şirket kurma, ekstra slotlar, otomatikler).
-- ◻︎ **Başarımlar** her sistemde.
-- ◻︎ **Bildirim/olay akışı** (event feed).
-- ✅ Admin paneli (temel), ✅ i18n TR/EN, 🟡 responsive.
-- ◻︎ **Moderasyon araçları**, kurallar, raporlama.
+### H. Suç & Hukuk — ◻︎ tamamı (U5).
+### I. Sağlık derinliği — ◻︎ hastalık/bağımlılık/ameliyat/aşı (U5).
+### J. Diğer kariyerler — ◻︎ polis/tıp/din/itfaiye/bilim/spor (U5).
+### K. Öğeler & Envanter — ◻︎ eşya/kıyafet/enstrüman sahipliği/araç/tarif (U1→U6).
+### L. Sistem & Meta — 🟡 VIP perk seti (U4); ◻︎ bildirim zili (U6); ◻︎ kredi
+ürünleri (U4); ◻︎ rehber içeriği (U4); ✅ admin, i18n.
 
 ---
 
-## 2. FAZLI UYGULAMA PLANI (Faz 8+ → tam parite)
+## 3. Tamamlanan Fazlar (tarihçe)
 
-Sıra bağımlılık + değer önceliğine göre. Her faz: şema + engine + worker + UI + i18n + test + commit.
+- ✅ **Faz 0–1:** MVP çekirdeği (altyapı + karakter/dünya döngüsü)
+- ✅ **Faz 2:** zamanlı öğrenme + üniversite + haftalık ekonomi
+- ✅ **Faz 3:** müzik kariyeri (grup, şarkı, prova, konser, ün)
+- ✅ **Faz 4:** CD kayıt, satış simülasyonu, charts
+- ✅ **Faz 5:** sosyal & aile (ilişki, mesaj, çocuk, ölüm→varis)
+- ✅ **Faz 6:** gayrimenkul, işletme, şehir politikası, VIP
+- ✅ **Faz 7:** çoklu şehir, NPC dünya, admin, dağıtım
+- ✅ **Faz 8:** müzik derinleştirme (17 tür, sahne rolleri, jam tavanı, klip,
+  yayın tazeliği, şehir fan tabanı)
+- ✅ **Faz 9:** yetenek ağaçları (19 kategori, 5★, önkoşul, usta/mentor)
+- ✅ **Faz 10:** ün & medya (PR ajanı, röportaj, dedikodu, yıllık ödüller,
+  fan kulübü, başarımlar) — deploy bekliyor
 
-### ✅ Faz 8 — Müzik Derinleştirme (TAMAMLANDI)
-Tamamlanan: 17 tür; tür + 2 sahne rolü (%80/%20) + konser rol faktörü; genre-bağlı
-jam tavanı (%50–100); müzik klibi (satış/ün etkisi); yayın takvimi → fame decay;
-şehir bazlı fan tabanı. Kalan (sonraki müzik alt-fazı): enstrüman 4-yıldız kapısı
-derinliği, radyo, turne, plak sözleşmeleri.
+## 4. Çalışma Biçimi
 
-Orijinal plan:
-- **Tür + 2 sahne rolü** (primary %80 / secondary %20) seçimi; karaktere/banda bağla.
-- **Enstrüman & rol hiyerarşisi** + **4-yıldız geçiş kapısı** (Basic → ileri).
-- **17 tür** + genre skill'leri; **jam/prova yüzdesi = genre skill** (%50–%100).
-- **Söz kalitesi** bestede ağırlıklı; showmanship sahne performansına etki.
-- **Müzik klibi** + **yayın takvimi** (single/28g, album/112g) + **gecikince fame decay**.
-- **Radyo çalma** + **tür/ulusal charts** + **şehir bazlı fan tabanı**.
-- **Groupie'ler** (star value'ya bağlı), **turne** iskeleti.
-- Model: `StageRole`, `Genre`(17), `CharacterStageRole`, `GenreSkill`, `MusicVideo`, `FanBaseCity`, `Groupie`, `Tour`.
-
-### ✅ Faz 9 — Yetenek Ağaçları & Eğitim (TAMAMLANDI)
-Tamamlanan: 19 kategoriye yayılmış geniş skill kataloğu; 5-yıldız + Basic→ileri
-**önkoşul** zorlaması (prereq 4★); **usta/mentor**tan hızlı öğrenme; Skills katalog
-sayfası (ağaç + kilit + şehirdeki ustalar). Kalan: üniversite dereceleri/sınav/diploma.
-
-Orijinal plan:
-- **19 kategori** + **5-yıldız (0–5)** model + **Basic→ileri önkoşullar**.
-- Büyük **skill kataloğu** (seed), kademeli öğrenme süreleri.
-- **Usta/Mentor** sistemi (yüksek seviyeli karakterden öğren, karşılıklı).
-- **Üniversite dereceleri** + sınav + diploma; kitap çeşitliliği.
-- Model: `Skill`(tier, prereq, category), `Mentorship`, `Degree`, `Enrollment`.
-
-### Faz 10 — Ün, Medya & Başarımlar
-- **PR yöneticisi** + Media Manipulation etkileri; **gazete/basın** + röportaj.
-- **Ödül törenleri** (yıllık), **fan kulübü** + fan postası.
-- **Başarımlar/kupalar** motoru (tüm sistemlere kanca).
-- Model: `NewsArticle`, `Award`, `AwardShow`, `FanClub`, `Achievement`, `CharacterAchievement`.
-
-### Faz 11 — Ekonomi Derinleştirme
-- **Şirketler**: çalışan alma, ücret, ürün/stok, gelir; VIP ile kurma.
-- **Mülk piyasası**: ev/mülk türleri, al-sat, fiyat dalgalanması.
-- **Banka**: hesap, **kredi + faiz**, havale.
-- **Mağaza + eşya çeşitliliği + envanter** genişletme.
-- Model: `Company`, `Employment`(genişlet), `Product`, `PropertyListing`, `BankAccount`, `Loan`, `Item`, `Inventory`.
-
-### Faz 12 — Sosyal & Aile Derinleştirme
-- **Flört → evlilik → boşanma**; **hamilelik zaman çizelgesi**; **aile ağacı UI**.
-- **İlişki izin sistemi**; farklı etkileşimler (öv/flört/hakaret), **hediyeler**.
-- **Gruplar/organizasyonlar**, **topluluk sayfaları**, **blog/günlük**, **forum**.
-- Model: `Marriage`, `Pregnancy`, `Organization`, `Membership`, `BlogPost`, `ForumThread`, `Gift`.
-
-### Faz 13 — Dünya & Seyahat
-- **Çok sayıda gerçek şehir** + ülkeler + zaman dilimleri.
-- **Şehirler arası seyahat** (uçuş: süre + ücret + enerji).
-- **Yeni mekan türleri** (stüdyo, radyo, havaalanı, banka, mahkeme, hapishane, kilise).
-- **Belediye meclisi + yasalar + suç şiddet ayarları**.
-- Model: `Flight/Trip`, `LocaleType`(genişlet), `Law`, `CouncilSeat`.
-
-### Faz 14 — Suç & Hukuk
-- **Suç aksiyonları** (şiddet 1–10), çeteler; **polis kariyeri** (devriye/tutuklama).
-- **Mahkeme → hapis → kefalet/ceza**; Criminal & Police yetenek ağaçları.
-- Model: `Crime`, `CrimeReport`, `Arrest`, `Trial`, `PrisonTerm`, `Gang`.
-
-### Faz 15 — Sağlık & Yaşam
-- **Açlık meter** + yiyecek/içecek çeşitliliği; **uyuşturucu/bağımlılık**; **hastalık**.
-- **Tıp kariyeri** (doktor, tedavi hizmeti), hastane derinleştirme.
-- Model: `Consumable`, `Addiction`, `Disease`, `Treatment`.
-
-### Faz 16 — Diğer Kariyerler
-- **Spor, Bilim, İtfaiye, Doğa/Kaynaklar, Paranormal, Crafting, Ruhani/Din** yetenek ağaçları + kariyer döngüleri.
-- **Din**: kilise mekanı, rahip rolü, inanç mekaniği.
-- Model: kategori bazlı iş/aktivite tanımları + `Religion/Faith`.
-
-### Faz 17 — Öğeler, Görünüm & Crafting
-- **Kıyafet** (looks etkisi), **enstrüman gerekliliği** (çalmak için), **araçlar**, **crafting üretim zinciri**.
-- **Katmanlı portre/avatar** sistemi (özgün varlıklar).
-- Model: `ItemType`(genişlet), `CraftingRecipe`, `Vehicle`, `Outfit`, `Portrait`.
-
-### Faz 18 — Meta, Denge & Cila
-- **Başarımlar** tüm sistemlerde; **bildirim/olay akışı**; **VIP perk seti**.
-- Denge ayarı (ekonomi/ün/öğrenme eğrileri), performans, **daha çok dil**, erişilebilirlik, moderasyon.
-
----
-
-## 3. Çalışma Biçimi
-- Her faz kendi içinde bağımsız, oynanabilir bir dikey dilim olarak biter; `main` + feature branch'e push edilir; prod'da migration + gerekirse seed çalıştırılır.
-- `docs/DESIGN.md` her yeni ekran için güncellenir.
-- Testler (Vitest engine + uçtan uca doğrulama scriptleri) her fazda korunur.
-
-> **Not:** Popmundo 20 yıllık bir oyun; "her şey" çok büyük bir yüzey. Bu yol haritası
-> tam pariteyi **8 ek faza** böler. Önerilen başlangıç: **Faz 8 (müzik derinleştirme)** —
-> oyunun kalbi ve en yüksek oynanış değeri orada.
+- Her faz bağımsız, oynanabilir dikey dilim; feature branch'e commit + push;
+  prod'da migration + gerekirse seed.
+- `docs/DESIGN.md` yapısal sözleşmedir; her yeni ekran envanterdeki panel
+  dizilimine birebir uyar.
+- Vitest engine testleri + tip kontrol + build her fazda zorunlu.
+- **Özgünlük sınırı:** yapı/akış/mekanik birebir; logo, görsel, ikon, açıklama
+  metinleri, şarkı/isim havuzları özgün. Şarkı sözü hiç üretilmez.

@@ -1,233 +1,263 @@
-# Fameworld — Tasarım Brief'i (Design System: FDS)
+# Fameworld — Tasarım Belgesi (Klasik Parite Sürümü)
 
-> **Tasarım aracı / tasarımcı için:** Bu dosya, Fameworld'ün **tüm ekranlarının,
-> bileşenlerinin, durumlarının, animasyonlarının ve gereken görsel varlıklarının**
-> tek referans kaynağıdır. Bir ekran veya bileşen tasarlamadan önce **önce bu
-> dosyayı oku**; token'lara, bileşen listesine ve ilgili ekranın "Durumlar" +
-> "Animasyonlar" + "Varlıklar" bölümlerine göre üret.
+> **Hedef:** İlk etapta Popmundo'nun ekran yapısını, sayfa düzenini, navigasyonunu ve
+> oynanış akışlarını **birebir yapısal parite** ile yeniden inşa etmek. Oyunun adı
+> **Fameworld** kalır. Mekanikler, ekran organizasyonu, panel dizilimi ve akışlar
+> aynı; **logo, görseller, ikonlar, açıklama metinleri ve veri içerikleri özgün
+> olarak yeniden üretilir** (telifli varlık kopyalanmaz). Tam klon hissi hedeflenir;
+> sonraki etaplarda özgünleştirerek ayrışılır.
 >
-> **Özgünlük şartı (zorunlu):** Tüm isimler, logo, ikon, illüstrasyon, renk ve
-> metinler **%100 özgün** olacak. Mevcut hiçbir oyunun görünümü, logosu, wordmark'ı,
-> ekran görüntüsü, ikonu veya varlığı **kopyalanmayacak**. İlham yalnızca **tür ve
-> yerleşim düzeni** seviyesinde alınır. Şarkılar yalnızca **başlık + sayısal kalite**
-> ile temsil edilir; hiçbir yerde şarkı sözü/telifli metin bulunmaz.
-
-Fameworld: gerçek zamanlı, müzik endüstrisi odaklı bir **yaşam-simülasyonu MMO**'su.
-Arayüz **sayfa tabanlı "komuta merkezi"** düzenindedir: üstte kalıcı durum çubuğu,
-solda navigasyon menüsü, ortada üst üste panel'ler. Hedef: yoğun bilgi, sakin görünüm,
-ilk bakışta okunabilirlik.
+> Bu belge, oynanan gerçek sayfalardan (46 kayıtlı sayfa: karakter/şehir/mekân/
+> sanatçı/dükkân/rehber/sosyal) çıkarılan yapı envanterine dayanır.
 
 ---
 
-## 1. Marka & Ton
-- **Kişilik:** modern ama klasik, "yönetim simülasyonu" hissi; sahne/müzik enerjisini
-  mor aksan + ölçüm çubuklarıyla verir, ama içerik alanı sakin ve okunur kalır.
-- **Wordmark:** "Fameworld" — özgün tipografik logo (yıldız/eşitleyici (equalizer)
-  motifi önerilir, ama serbest). Tek renk + mor varyant.
-- **Ton (metin):** kısa, arkadaşça, ikinci tekil şahıs ("Karakterin hastanede…").
+## 1. Global Sayfa İskeleti
 
-## 2. Tasarım Token'ları (Tailwind ile uygulanacak)
-**Renk**
-- brand `#7c3aed` (mor), brandDark `#5b21b6`
-- ink (metin) `#1f2430`; ink/60, ink/50 tonları ikincil metin
-- soft (arka plan) `#f4f2f8`; panel `#ffffff`; kenarlık `rgba(0,0,0,0.10)`
-- Ölçerler: mood/keyif `#f59e0b` (amber), health/sağlık `#ef4444` (kırmızı),
-  energy/enerji `#10b981` (yeşil)
-- Durum: success `#16a34a`, danger `#dc2626`, warning `#d97706`, info `#2563eb`
-- Para pozitif `#16a34a`, negatif `#dc2626`
+Her oyun sayfası aynı iskeleti kullanır:
 
-**Tipografi:** system-ui / Segoe UI / Roboto ailesi.
-- Başlık panel: 14px/600; sayfa başlığı 20–24px/700; gövde 14px; küçük etiket 11px;
-  rakam vurguları 16–18px/600.
+```
+┌──────────────────────────────────────────────────────────────┐
+│ HEADER: [Logo]        [Oyun günü + saat]  [Enerji]  [Zil]   │
+│ ANA MENÜ (yatay, 9 öğe):                                     │
+│  Şehir | Mekân | Karakter | Sanatçı | Şirket | Rehber |      │
+│  Sıralamalar | Sosyal | Dükkân                               │
+│ BİLDİRİM SATIRI: aksiyon geri bildirimi / "yeni bilgi yok"   │
+├───────────────────────────────────────────┬──────────────────┤
+│ İÇERİK KOLONU (geniş, ~%72)               │ BAĞLAM MENÜSÜ    │
+│  H1 sayfa başlığı                         │ (dar, ~%28)      │
+│  [Üstbilgi bloğu — sayfa tipine göre]     │  Gruplu link     │
+│  H2 panel + açıklama paragrafı + tablo    │  listeleri; grup │
+│  H2 panel + ...                           │  başlığı + linkler│
+├───────────────────────────────────────────┴──────────────────┤
+│ FOOTER: dil seçici, kurallar, yardım                         │
+└──────────────────────────────────────────────────────────────┘
+```
 
-**Uzaklık/biçim:** taban birim 4px; panel iç boşluğu 16px; radius: kart 6px, buton 4px,
-pill/rozet 999px. Gölge: `0 1px 2px rgba(0,0,0,.06)` (panel), hover'da hafif artış.
+Temel kurallar:
+- **Sabit genişlikte, ortalanmış** klasik sayfa (~980–1000px); mobilde tek kolona düşer,
+  bağlam menüsü içeriğin altına iner.
+- **Her aksiyon tam sayfa yenilemesiyle** sonuçlanır ve sayfanın en üstünde tek satır
+  **geri bildirim mesajı** gösterilir (ör. mekâna yürüme, satın alma sonucu).
+- **Kimlik numaraları görünürdür**: karakter, mekân, sanatçı sayfalarında adın yanında
+  küçük gri ID rozeti bulunur.
+- **Bağlam menüsü** (sağ kolon) bulunulan bölüme aittir ve sayfalar arasında sabittir:
+  Karakter bölümündeyken karakter menüsü, Sanatçı bölümündeyken sanatçı menüsü görünür.
+- VIP'e özel menü öğeleri **yıldız (★) işareti** ile işaretlenir.
 
-**Breakpoint'ler:** mobil <768, tablet 768–1024, masaüstü >1024. İçerik max genişlik 1024px.
-**z-index:** taban 0, sticky durum çubuğu 10, dropdown 20, modal 40, toast 50.
+## 2. Görsel Dil (özgün üretim, aynı his)
 
-## 3. Global / Paylaşılan Bileşenler
-Her biri light tema + hover/focus/disabled/loading durumlarıyla tasarlanacak.
-1. **StatusBar (üst durum çubuğu)** — karakter adı+yaş+konum, 3 ölçer (keyif/sağlık/enerji),
-   para (§), ün, oyun tarihi. Sticky. Mobilde sarar (wrap) / özet moda geçer.
-2. **NavMenu (sol menü)** — dikey liste; aktif öğe mor dolgu; altta çıkış. Mobilde
-   hamburger → kayan çekmece (drawer).
-3. **Panel** — `panel-header` (başlık + opsiyonel sağ aksiyon) + `panel-body`. Temel yapı taşı.
-4. **Butonlar** — `btn` (primary mor), `btn-ghost` (kenarlıklı), tehlike varyantı (kırmızı metin).
-   Durumlar: hover, active/press, disabled, loading (spinner + kilitli).
-5. **Form alanları** — input, select, number, textarea; label + hata metni + yardım metni.
-6. **Meter (ölçer çubuğu)** — ince, yuvarlatılmış, renk kodlu; yüzde etiketi.
-7. **Yıldız derecelendirme** — attribute seviyesi (★, kısmi yıldız/tier gösterimi).
-8. **XP çubuğu** — attribute ilerlemesi (mor dolum + "x/y XP").
-9. **Liste/Tablo** — satır ayraçlı; sol içerik + sağ aksiyon/metrik deseni.
-10. **Sekmeler (tabs)** — ileride profil/şehir alt bölümleri için.
-11. **Modal/Diyalog** — onay + form modali (ör. konser kur, gruptan ayrıl onayı).
-12. **Toast/Bildirim** — aksiyon geri bildirimi (kaydedildi, para yetersiz, tahliye).
-13. **Avatar** — karakter görseli (bkz. §6 Avatar sistemi); boyutlar 24/40/96.
-14. **Rozet/Etiket (badge)** — mekan türü, "Buradasın", "Sahipsin", "Hastanede".
-15. **Empty state** — ikon + kısa açıklama + CTA (her liste için).
-16. **Skeleton loader** — panel/list/statusbar için shimmer iskeletleri.
+- **Tipografi:** `"Lucida Grande", Verdana, sans-serif`; gövde 11–12px, yoğun ve
+  metin ağırlıklı. Başlıklar (h1/h2) koyu, küçük; süsleme yok.
+- **Palet:** beyaz zemin; açık gri panel/kutu zeminleri (`#eee` bandı); koyu metin
+  (`#111`); **mavi linkler** (`#09639a` / hover `#0078a3`); **sarı vurgu** (`#fc0`,
+  seçim/uyarı rozetleri); **turuncu ikaz** (`#f58400`); kırmızı yalnızca hata.
+- **Kutu (panel):** başlık `h2`, hemen altında 1–3 cümlelik **açıklayıcı paragraf**
+  (oyun dünyasını anlatan "flavor" metni — özgün yazılır), sonra veri tablosu ya da
+  form. Paneller arasında 15px boşluk.
+- **Veri tabloları (`table.data`):** çizgisiz, sıkışık, tam genişlik; başlık satırı
+  gri; satırlarda değer + **sıfat etiketi** çifti (ör. "93 — mükemmel", "35 — vasat").
+  Sıralanabilir kolonlar.
+- **Seviye ifadesi:** sayı (0–100) + Türkçe sıfat skalası. Skala (özgün):
+  0 berbat · 10 çok kötü · 20 kötü · 30 ortalama altı · 40 vasat · 50 ortalama ·
+  60 idare eder · 70 iyi · 73+ şahane · 80 çok iyi · 90 harikulade · 100 mükemmel.
+- **Yetenek yıldızları:** 0–5 yıldız görseli + 0–100 iç puan; listelerde `(****)` gibi
+  kompakt gösterim.
+- **Avatar/portre:** karakter üstbilgi bloğunda dikdörtgen portre alanı (katmanlı
+  portre sistemi gelene dek mevcut baş harf avatarı bu çerçevede kullanılır).
+- **İkonografi:** küçük, tek renk/duotone ikonlar (meter yanları, menü işaretleri,
+  başarı rozetleri). Tümü özgün çizim/emoji geçici.
 
----
+## 3. Paylaşılan Bileşenler
 
-## 4. Ekran-Ekran Tasarım Listesi
+- **B1. Header durum bloğu:** oyun içi gün adı + saat ("Perşembe 11:36" biçimi),
+  enerji sayısı, bildirim zili; tıklanınca bildirim listesi.
+- **B2. Ana menü:** 9 sabit öğe (bkz. iskelet). Aktif bölüm koyu.
+- **B3. Geri bildirim satırı:** son aksiyonun tek satır sonucu; yoksa
+  "Görüntülenecek yeni bilgi yok." kalıbı.
+- **B4. Karakter üstbilgi bloğu** (karakter bölümü sayfalarının tepesinde):
+  portre; ad + ID; yaş cümlesi; grup üyeliği cümlesi (linkli); konum cümlesi
+  ("X şehrinde, Y adlı mekânda", linkli); boş zaman/kariyer odağı cümlesi;
+  kişilik/itibar etiketleri; **dört gösterge**: ruh hâli, sağlık, enerji, nakit;
+  hızlı linkler: Geliştir · Odaklar · Ayarlar.
+- **B5. Sanatçı üstbilgi bloğu:** sanatçı adı + ID, klasman cümlesi (ün kademesi),
+  tür + tür sıralaması ("Rock #1509"), kasa, kontrat durumu, üye sayısı.
+- **B6. Mekân üstbilgi bloğu:** mekân adı + ID, tür açıklama paragrafı,
+  "Temel bilgiler" tablosu (tür, şehir, bölge, idare, kalite+durum sıfatı, nakit).
+- **B7. Bağlam menüsü grubu:** gri grup başlığı + link listesi; VIP öğeleri ★.
+- **B8. Sayfalama + arama formu** (listeler: mekân ara, karakter ara, şarkı piyasası).
+- **B9. Takvim tablosu:** gün no, tarih, hafta günü, tatil/etkinlik kolonu.
 
-Her ekran için: **Amaç · Route/dosya · Yerleşim · Bileşenler · Durumlar · Animasyonlar · Varlıklar**.
-"✅" = kodlandı (mevcut), "◻︎" = sonraki fazlar.
+## 4. Bölüm ve Sayfa Envanteri (birebir yapı)
 
-### A. Kimlik / Onboarding
-**A1. Giriş / Kayıt** ✅ — `app/[locale]/(auth)/login|register`
-- Amaç: hesap oluştur / giriş. Ortalanmış tek kart.
-- Bileşenler: logo + tagline, panel, email/parola alanları, primary buton, alt geçiş linki.
-- Durumlar: boş, doğrulama hatası (kırmızı satır), gönderiliyor (buton loading), "e-posta zaten kayıtlı".
-- Animasyon: kart giriş fade-slide; buton loading spinner; hata satırı shake (hafif).
-- Varlıklar: logo, arka plan doku/gradyan (opsiyonel), müzik temalı hafif illüstrasyon.
+### 4.A Ana Sayfa (giriş sonrası)
+Paneller: "Hoş Geldin {ad}!" özet; **Camia Haberleri** (oyun duyuruları);
+**Son Yenilikler** (changelog özeti); **N'aber?** (arkadaş akışı);
+**Sosyal** (öne çıkanlar); **Faydalı Özellikler** (kısayollar).
 
-**A2. Karakter Oluşturma** ✅ — `app/[locale]/create`
-- Amaç: ad/soyad, cinsiyet, doğum şehri seç → 18 yaşında başla.
-- Bileşenler: panel, ad/soyad ikili alan, cinsiyet select, şehir select, "Yaşamaya başla".
-- İleride ◻︎: **görünüm seçici** (avatar: yüz/saç/ten/kıyafet) — bu ekran için avatar
-  önizleme + kaydırıcılar/thumbnail'lar tasarlanacak.
-- Durumlar: boş/doldurulmuş; gönderiliyor.
-- Animasyon: adımlar arası geçiş (çok adımlı yapılırsa); avatar önizleme canlı güncelleme.
-- Varlıklar: avatar parça setleri (§6).
+### 4.B Şehir (`/city`)
+- **Şehir ana sayfası:** karşılama + nüfus cümlesi; **"Şehir 101"** önemli mekân
+  dizini (Havaalanı, Hastane, Belediye Binası, Adliye, Şehir Dışı Otoyol, Kayıp
+  Eşya Bürosu, İbadet Evi, Spor Salonu, Otel — her biri linkli); **önümüzdeki
+  günler** takvim tablosu (tatil/etkinlik işaretli); **Vali diyor ki** (başkan
+  mesajı); **şehir makaleleri** (basın); **şehir piyangosu** sonuçları;
+  **gelecek konserler** listesi (sanatçı, tarih-saat, mekân, satılan bilet);
+  **Şehir Seç** listesi (çok sayıda gerçek şehir); "Şehrin En İyileri" linki.
+- **Mekânlar sayfası:** mekân arama formu (ad/tür), mekân listesi, şehir seçici.
+- **Şehir takvimi** (tam ay görünümü) ve **şehir bilgi/istatistik** sayfası.
 
-### B. Ana Oyun İskeleti (her sayfada)
-**B1. StatusBar + NavMenu + içerik grid** ✅ — `app/[locale]/(game)/layout.tsx`
-- Yerleşim: üst durum çubuğu; altında `200px | 1fr` grid (menü | içerik). Mobilde tek kolon.
-- Animasyon: ölçerlerin değer değişiminde yumuşak dolum; para değişiminde count-up + renk flaş;
-  sayfa geçişinde içerik alanı fade.
-- **Hastane durumu:** karakter <%15 iken durum çubuğu "Hastanede" rozeti + kırmızı nabız (pulse);
-  aksiyon butonları kilitli görünür.
+### 4.C Mekân (`/locale/[id]`)
+- Üstte **geliş cümlesi** (geri bildirim satırı: "... adlı mekâna yürüdünüz").
+- Mekân üstbilgi bloğu (B6) + **Yönetimin notu** paneli (yönetici mesajı).
+- Mekâna özel **eylem panelleri** (türe göre): dükkânda **Reyonlar** + "Alışverişe
+  çık"; belediyede **Resepsiyonistle Konuş / Vatandaşlık / Memleket Değişimi**;
+  otel, hastane, stüdyo, kulüp vb. kendi eylem setleri.
+- **Yer bağlam menüsü:** Genel Bilgi · Çalışanlar · Eşyalar · Etkinlikler ·
+  Mekânda Bulunan Karakterler · Yönetim.
+- Mekân türleri (hedef set): kulüp/konser salonu, stadyum, plak şirketi, stüdyo,
+  radyo, üniversite, hastane, belediye binası, adliye, hapishane, ibadet evi,
+  havaalanı, otoyol, otel, restoran, bar, dükkân (giyim/müzik/genel), spor salonu,
+  kayıp eşya bürosu, apartman, park, banka.
 
-### C. Karakter
-**C1. Karakterim (Home)** ✅ — `(game)/home`
-- Amaç: özet — doğum, yaş, konum, hızlı "Şehre git"; hastanede uyarı paneli.
-- Durumlar: normal, hastanede (kırmızı bilgi paneli).
-- Animasyon: kart giriş; hastane paneli nabız.
-- Varlıklar: küçük durum ikonları (doğum, konum, yaş).
+### 4.D Karakter (`/character`) — bağlam menüsü 5 grup
 
-**C2. Özellikler & Yetenekler** ✅ — `(game)/attributes`
-- Amaç: attribute'lar (yıldız + XP çubuğu), skill listesi, "Devam eden çalışmalar"
-  (geri sayım), "Kitaplarım" (Çalış butonu).
-- Durumlar: yetenek yok (empty), çalışma yok, kitap yok, çalışma devam ediyor (kilit + kalan süre),
-  usta seviye (Mastered).
-- Animasyon: **XP çubuğu dolum**; **seviye atlama** yıldız pop + kısa parıltı; çalışma tamamlanınca
-  satır yeşil flaş; geri sayım canlı.
-- Varlıklar: attribute ikonları (vokal, çekicilik, görünüm, zekâ, bünye, yaratıcılık, el becerisi,
-  cazibe), kitap ikonu, saat/ilerleme ikonu.
+**Grup: Karakter**
+1. **Genel Bilgiler** — üstbilgi bloğu; oyun/puan/aktif gün/durum kutusu;
+   **Son Günlük Kayıtları** (otomatik günlük özetleri); **Yakın Takip** (son 5
+   mekân, zaman damgalı); **Göze Çarpan Kıyafetler ve Dövmeler** paneli.
+2. **Başarılar** — kazanılan başarı rozetleri ızgarası; "ilk üç"ü seçme/unutma.
+3. **Günlük** — otomatik + elle günlük kayıtları; günlüğü yönlendirme formu.
+4. **Blog** — karakter blogu (yazı listesi + yazma).
+5. **Geçmiş ve Diğer Bilgiler** — biyografi, karakter bilgileri, kişisel bilgiler,
+   dünya görüşü panelleri.
+6. **Aile** — aile ağacı (en yakın aile + filtreli tam ağaç ★).
+7. **İlişkiler** — ilişki listesi (tür + seviye), sayfalı.
+8. **Beden ve Sağlık** — **Özellikler** tablosu (8 özellik: Çekicilik, Dış Görünüş,
+   Ses, Müzik Yeteneği, Zekâ, Bünye, Güç, Ustalık — değer + sıfat); **Ruh Hali**
+   ve **Sağlık** göstergeleri (sayı + açıklama paragrafı); **Hastalıklar ve Özel
+   Durumlar**; **Bağımlılıklar**; **Ameliyatlar** (geçmiş listesi); **Dövmeler**;
+   **Bağışıklıklar ve Aşılar**.
+9. **Oyuncu Bilgileri** — hesabın (kuklacının) profili.
 
-### D. Dünya
-**D1. Şehir / Harita** ✅ — `(game)/city`
-- Amaç: şehirdeki mekanları listele; "Buraya git"; "Buradasın" rozeti.
-- İleride ◻︎: **görsel harita** (mekan pin'leri, bölge renkleri — politika fazı için zone'lar).
-- Durumlar: liste; mevcut konum vurgulu.
-- Animasyon: "git" sonrası hedef satırı highlight; (harita) pin hover tooltip.
-- Varlıklar: mekan türü ikonları (kulüp, plak şirketi, üniversite, hastane, mağaza, bar,
-  restoran, apartman, stadyum, radyo, park), şehir illüstrasyonu/harita zemini.
+**Grup: Kariyer ve Aktivite**
+10. **Odaklar** — boş zaman uğraşı seçimi + kariyer odağı seçimi (radyo listeleri).
+11. **Karakteri Geliştir (DP)** — haftalık deneyim puanı; özellik başına DP maliyeti
+    tablosu; **Yetenekleri geliştir** (seçim listesi + DP harca); şarkı geliştirme;
+    tarif keşfi ★; son DP harcamaları listesi.
+12. **Davetiyeler ve İstekler** — bekleyen davet/istek listesi.
+13. **Yetenekler** — kategori gruplu yetenek tablosu (yetenek adı + 0–100 seviye +
+    yıldız); gizli yetenek sayısı notu; "gizlileri göster" anahtarı.
+14. **Şarkılar** — bestelenen şarkılar listesi; **Müzik Bestelemek** paneli;
+    eski şarkıları arşivleme; yeni şarkı notu.
+15. **Uçuşlar** — gelecek uçuş listesi / "ayarlanmış uçuş yok"; uçuş ayarlama.
+16. **Etkinlikler** — gelecek + geçmiş etkinlik listesi.
+17. **Görevler** — aktif görev zinciri, görev geçmişi.
+18. **Partiler** — parti düzenleme/katılım.
+19. **Aktiviteler** — mekân aktiviteleri (spor, ibadet vb. zamanlı uğraşlar).
+20. **İstihdam** — iş listesi, maaş, işten ayrılma.
+21. **Öğrencilikler** — usta/çırak: mevcut öğrenciler, başvurular, kendi durumun.
+22. **Kişilik ve Davranış** — tavır seçimi; tur öncelikleri; otel davranışları;
+    groupie/hayran politikası.
+23. **Tarifler** — bilinen tarifler (crafting).
 
-**D2. Mekan (Venue) Detay** ✅ — `(game)/locale/[id]`
-- Amaç: mekana özel aksiyonlar. Tür'e göre değişen bölümler:
-  - Genel: **Dinlen**, (bar/restoran) **Yemek ye (§)**
-  - İş listesi: başlık + maaş + **Başvur**
-  - Mağaza: kitaplar + **Satın al** / "Sahipsin"
-  - Üniversite: dersler + **Kaydol**
-  - Apartman: **Kirala** / "Kiralıyorsun"
-- Durumlar: burada değil (aksiyonlar kilitli + "şehre dön"), para yetersiz (buton disabled),
-  hastanede (kilit).
-- Animasyon: aksiyon sonrası toast + ilgili ölçer/para güncelleme animasyonu.
-- Varlıklar: mekan başlık görseli (tür bazlı), aksiyon ikonları (dinlen, ye, iş, kitap, ders, anahtar/kira).
+**Grup: Varlıklar**
+24. **Eşyalar** — envanter tablosu (giyilenler ayrı); yük (ağırlık) göstergesi;
+    seçilenleri bırak/at; özel eylemler.
+25. **Barınma ve Erişim Şifreleri** — konut listesi; kapı şifreleri.
+26. **Ekonomi** — nakit cümlesi; **Faturalar** paneli; **Banka Hesapları ve
+    Krediler** paneli.
+27. **Araçlar** — kişisel araç listesi; araçla seyahat.
+28. **Şirket Hisseleri** — hisse portföyü; pasif hisseler; ticaret lisansı.
 
-### E. Ekonomi & Kariyer
-**E1. Kariyer** ✅ — `(game)/career` — işler + maaş + "Cuma ödeme" notu. Empty state.
-**E2. Finans / Banka** ✅ — `(game)/finances` — bakiye + işlem defteri (renkli +/−).
-- Animasyon: bakiye count-up; yeni işlem satırı slide-in.
-- İleride ◻︎: grafik (haftalık gelir/gider), banka/kredi kartı görseli.
+**Grup: Ticaret**
+29. **Alışveriş Yardımcısı** — tüm dükkânlarda ürün arama (ad/tür/şehir filtre).
+30. **Hediyeler ve Teklifler** — teklif edilen eşyalar (gelen/giden), kart teklifleri.
 
-### F. Müzik Kariyeri
-**F1. Grup (Band)** ✅ — `(game)/band`
-- Amaç: grup yoksa **kur** (ad + tür); varsa: grup başlığı (ün, üyeler), **Repertuar**
-  (şarkı: kalite + prova% + **Prova**), **Şarkı bestele**, **Konser ver** (mekan + bilet + **Sahne al**),
-  **Son konserler**, **Gruptan ayrıl**.
-- Durumlar: grup yok (kur formu), şarkı yok (empty), prova tam (disabled), konser koşulu yok,
-  hastanede (kilit).
-- Animasyon: **beste** sonrası yeni şarkı satırı pop; **prova** çubuğu dolum; **konser sonucu
-  reveal** (katılım/eleştiri/gelir sayaç + yıldız/ün artışı vurgusu); ün çubuğu artışı.
-- Varlıklar: enstrüman/sahne rolü ikonları, şarkı/plak ikonu, sahne/konser illüstrasyonu,
-  tür rozetleri.
+**Grup: Ekstralar**
+31. **Ayarlar ve İzinler** — varsayılan izinler (kim ne yapabilir).
+32. **Kredi Ürünleri** — kredi bakiyesi, VIP/kredi harcama seçenekleri.
+33. Adres Defteri ★ · Takvim ★ · Notlar ★ · Yer İmleri ★ · Portre ·
+    Davetli Karakterler · Kısayollar ★ · VIP İstatistikleri ★ · Sohbetler.
 
-**F2. Kayıt & Charts** ◻︎ (Faz 4) — CD kayıt (single/albüm), satış, haftalık listeler, radyo, ödüller.
-- Ekranlar: **Stüdyo/Kayıt** (tracklist seç, single/albüm), **Charts** (şehir/tür/global sıralama tablosu),
-  **Ödüller** töreni. Animasyon: chart sıra değişim, satış count-up, ödül reveal.
-- Varlıklar: CD/plak kapağı jeneratörü (özgün, otomatik), chart tablo ikonları, kupa/ödül ikonu.
+### 4.E Sanatçı (`/artist`) — bağlam menüsü 6 grup
 
-### G. Sosyal & Aile ◻︎ (Faz 5)
-**G1. Adres defteri / İlişkiler**, **G2. Mesajlaşma (kutu + konuşma)**, **G3. İlişki profili**
-(flört/evlilik/çocuk), **G4. Aile ağacı**, **G5. Yaşam olayları** (doğum/ölüm/varis geçişi).
-- Animasyon: mesaj balonu, ilişki seviyesi kalp/çubuk, aile ağacı düğüm bağlanma.
-- Varlıklar: avatar (çok kullanımlı), ilişki/kalp ikonları, aile ağacı düğümleri.
+**Grup: Sanatçı**
+1. **Genel Bilgiler** — sanatçı üstbilgi bloğu (B5); **Sanatçı Hareketliliği**
+   (haber akışı); **Hayranlara Mesaj**; **Üyeler** listesi (rol + katılım tarihi).
+2. **Program** (haftalık plan) · 3. **Yer Ayırtma Yardımcısı** ·
+4. **Sanatçı Anlık Sohbeti** · 5. **Günlük** · 6. **Ziyaretçi Defteri** ★ ·
+7. **Repertuvar** (şarkı + prova durumu) · 8. **Kayıt Kontratı** (plak şirketi
+   sözleşmesi) · 9. **Popülerlik** (şehir şehir hayran/ün dökümü) ·
+10. **Televizyon Programları** · 11. **Sıralama Ayrıntıları** ★ ·
+12. **Ziyaret Edilen Şehirler** · 13. **Oyuncu Yarışmaları** ·
+14. **Kayıt Kontratı Teklif Et**.
 
-### H. Gayrimenkul, İşletme & Politika ◻︎ (Faz 6)
-**H1. Emlak** (satın al/kirala, mülk kartı), **H2. İşletme** (yönetim paneli), **H3. Politika**
-(seçim, belediye, şehir bölgeleri harita katmanı), **H4. VIP**.
-- Varlıklar: bina/mülk illüstrasyonları, harita bölge katmanı, oy/sandık ikonları, VIP rozeti.
+**Grup: Konserler** — Performans Planı Düzenleyici · Gelecek Konserler ·
+Son Konserler · **Konser Ayarla** (mekân + tarih + bilet) · Davetler ·
+Davetiye Gönder.
 
-### I. Ayarlar ✅/◻︎ — dil (TR/EN) değiştirici, hesap, tema; bildirim tercihleri.
+**Grup: Yapımlar** — Kayıtlı Şarkılar · **Diskografi** (single/albüm + satışlar) ·
+**Klipler** · Kayıt Kutlama Partileri.
 
-### J. Sistem Ekranları
-**J1. 404 / Bulunamadı** ✅, **J2. Hata (error boundary)** ◻︎, **J3. Yükleniyor (skeleton)** ◻︎,
-**J4. Admin paneli** ◻︎ (world clock, seed, moderasyon).
+**Grup: Rodiler (Tur)** — Sahne Ekipmanı · Tur Aracı · Tur Öncelikleri ·
+Ekstra Hizmet · Şahsi Eşyalar · Ekip.
 
----
+**Grup: Üyelere Özel** — Üyeler (rol/pay yönetimi) · Nakit Parayı Yönet · Adaylar.
 
-## 5. Animasyon Kataloğu
-Hepsi **hızlı, ince, bloklamayan**. Süre 150–300ms, easing `ease-out` (giriş) / `ease-in-out` (geçiş).
-`prefers-reduced-motion` desteklenecek (animasyonlar kapanabilir).
-- **Meter fill/drain** — genişlik geçişi 250ms.
-- **XP bar fill** — 300ms; dolunca kısa parıltı.
-- **Level-up** — yıldız "pop" (scale 1→1.3→1) + parıltı 400ms.
-- **Money count-up** — rakam sayaç + yeşil/kırmızı renk flaş 300ms.
-- **Concert result reveal** — metrikler sırayla sayaçla belirir; ün artışı vurgusu.
-- **Page/panel transition** — fade + 4px slide-up 200ms.
-- **Button hover/press** — renk/gölge 120ms; press scale 0.98.
-- **Hospital/critical pulse** — durum çubuğunda kırmızı nabız 1.2s döngü.
-- **Toast** — sağ-üstten slide-in + auto-dismiss; **Skeleton shimmer** — 1.2s döngü.
+**Grup: Şarkı Piyasası** — Mevcut Teklifler · Piyasaya Göz At · Alımlar.
 
-## 6. Görsel Varlık Listesi
-- **Logo/wordmark** (özgün) + favicon + app ikonu.
-- **İkon seti** (özgün, tutarlı çizgi stili): navigasyon (6), attribute (8), mekan türü (11),
-  aksiyon (dinlen/ye/iş/kitap/ders/kira/bestele/prova/konser), ekonomi (para/maaş/kira/CD),
-  sosyal (mesaj/kalp/aile), durum (hastane/uyarı/başarı).
-- **Avatar sistemi (özgün):** katmanlı parça seti — yüz şekli, ten tonu, saç, göz, kıyafet,
-  aksesuar; cinsiyet/yaş varyasyonu; 24/40/96 px. (Karakter oluşturma + profil + üye listeleri.)
-- **İllüstrasyonlar:** giriş ekranı, boş durumlar (her liste için 1), sahne/konser sahnesi,
-  şehir/harita zemini, mekan başlık görselleri (tür bazlı).
-- **CD/plak kapağı jeneratörü** (Faz 4, özgün otomatik desenler).
-- **Rozet/etiket** görselleri (mekan türü, durum).
+### 4.F Şirket (`/company`)
+Şirket sayfası: üstbilgi (ad + ID), **Temel bilgiler**, **Yönetimin Notu**,
+çalışanlar/reyonlar/ürünler; "Şirket seç" listesi; vali talepleri; mekân haberleri.
 
-## 7. Responsive Davranış
-- **>1024:** üç bölge (durum çubuğu / sol menü / içerik), max 1024px içerik.
-- **768–1024:** menü daralır (ikon+kısa etiket) veya üstte yatay şerit.
-- **<768:** menü hamburger → drawer; durum çubuğu sarar veya "özet + genişlet"; paneller tam genişlik,
-  tablolar kart görünümüne düşer; butonlar tam genişlik.
+### 4.G Rehber (`/guide`)
+Oyun rehberi ana sayfası + konu başlıklı rehber menüsü; mevcut rehberler listesi.
 
-## 8. Erişilebilirlik
-- WCAG **AA** kontrast (mor üstü beyaz, ink/60 minimum). Görünür **focus halkası**. Tam **klavye**
-  gezinme. Form label + hata `aria` bağlantısı. Ölçerler için metinsel yüzde. `reduced-motion`.
+### 4.H Sıralamalar (`/rankings`)
+"Önemli şeyler" + liste kataloğu: şarkı/albüm listeleri, sanatçı sıralamaları,
+şehir en iyileri, zenginler, yetenek liderleri vb.
 
-## 9. Yerelleştirme (TR/EN)
-- Tüm metin i18n anahtarlarından gelir (`packages/i18n/messages/{en,tr}.json`). Tasarımlarda
-  **~%30 daha uzun** Türkçe metinlere yer bırak; sabit genişlikli buton/etiketlerden kaçın.
-  Tarih/para biçimi locale duyarlı (§ para simgesi projeye özgü).
+### 4.I Sosyal (`/social`)
+Öne Çıkan Sosyal Kulüp; **The Insider'dan Makaleler** (oyun içi basın);
+Global yarışmalar; "gelecek hafta" ajandası; haftalık görevler (tur numaralı).
 
-## 10. Teslim & Handoff
-- **Token'lar** (renk/tipografi/uzaklık/radius/gölge) — `apps/web/tailwind.config.ts` +
-  `globals.css` ile eşleşecek şekilde.
-- **Bileşen kütüphanesi** — §3 listesi, tüm durumlarıyla; **Tailwind CSS + React** ile uygulanacak
-  (mevcut sınıflar: `panel`, `panel-header/body`, `btn`, `btn-ghost`, `field`, `meter`).
-- Ekran tasarımları §4'teki route'lara birebir eşlenecek; her ekranın durum ve animasyon
-  notları uygulanacak.
+### 4.J Dükkân (`/shop`)
+**VIP Üyelik** (avantaj listesi + satın alma); **Krediler** (paket satışı);
+kredi ürünleri: Özel İkramlar, Ek Oyun İçeriği, Yardımcılar, Mükemmel Bölümler.
 
----
-**Not:** Bu belge yaşayan bir dokümandır; yeni faz/ekran eklendikçe §4 güncellenir. README bu dosyaya
-referans verir.
+### 4.K Hesap (`/account`)
+Hesap Ayrıntıları: kişisel bilgi, e-posta, konuşulan diller, hesap menüsü.
+
+## 5. Davranış Kalıpları
+
+- **Açıklama paragrafı zorunlu:** her panelin altında/üstünde dünyayı anlatan 1–3
+  cümlelik özgün metin (Popmundo'nun "her ekran öğretir" hissi).
+- **Zaman:** oyun günü adı + saat her sayfada; takvimler oyun günü numarası + gerçek
+  tarih çifti gösterir.
+- **Seviyeler asla çıplak sayı değil:** sayı + sıfat etiketi birlikte.
+- **Her varlık linklidir:** karakter adı, mekân adı, sanatçı adı, şehir adı geçen
+  her yerde ilgili sayfaya link.
+- **Feedback-first:** aksiyonlar sayfanın tepesindeki tek satırla sonuç bildirir.
+- **VIP ayrımı:** VIP özellikleri menüde ★ ile görünür ama kilitli sayfa açıklama +
+  Dükkân linki gösterir.
+
+## 6. Responsive & Erişilebilirlik
+
+- Masaüstü birincil (sabit ~1000px, iki kolon). Mobil: tek kolon; ana menü yatay
+  kaydırmalı şerit; bağlam menüsü içerik altına akordeon olarak iner.
+- Tablolar mobilde yatay kaydırma. Kontrast WCAG AA; linkler her zaman ayırt
+  edilebilir mavi; `prefers-reduced-motion` desteklenir (animasyon zaten minimal).
+
+## 7. Yerelleştirme
+
+TR birincil, EN eşlik eder (`next-intl`). Tüm panel açıklama metinleri iki dilde
+özgün yazılır. Sıfat skalası iki dilde tanımlanır.
+
+## 8. Uygulama Notları
+
+- Bu belge **görsel/yapısal sözleşmedir**; sistemlerin hangi sırayla derinleşeceği
+  `docs/POPMUNDO_PARITY_ROADMAP.md`'de fazlanmıştır.
+- Mevcut Next.js sayfaları yeni iskelete taşınır (route'lar korunur, layout değişir);
+  yeni sayfalar envanterdeki ada ve panel dizilimine birebir uyar.
+- Tailwind token'ları bu belgeye göre güncellenir: `font-sans` → Lucida Grande
+  yığını; `brand` → klasik link mavisi; panel/kutu sınıfları `box`/`data` kalıbına.
