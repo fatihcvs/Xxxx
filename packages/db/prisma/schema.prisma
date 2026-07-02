@@ -142,6 +142,16 @@ model Character {
   // In-game time of the last weekly gossip roll (drives the gossip sweep).
   lastGossipGameAt DateTime?
 
+  // Development points (granted on in-game Sundays, spent on training).
+  dp               Int       @default(10)
+  lastDpGrantGameAt DateTime?
+  // Chosen focuses and demeanour (engine value keys, labels in i18n).
+  freeTimeFocus String?
+  careerFocus   String?
+  attitude      String?
+  // Short self-written biography shown on the background page.
+  bio String?
+
   // Family / heir line.
   parentId String?
   parent   Character?  @relation("Parentage", fields: [parentId], references: [id])
@@ -178,6 +188,9 @@ model Character {
   newsArticles NewsArticle[]
   awards       Award[]               @relation("CharacterAwards")
   achievements CharacterAchievement[]
+  diaryEntries DiaryEntry[]
+  localeVisits LocaleVisit[]
+  bankAccount  BankAccount?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -734,4 +747,42 @@ model CharacterAchievement {
   earnedAt      DateTime    @default(now())
 
   @@unique([characterId, achievementId])
+}
+
+// ---------------------------------------------------------------------------
+// Character section (Faz U1): diary, recent places, banking
+// ---------------------------------------------------------------------------
+
+// An automatic diary line; body text is an i18n key + params rendered on read.
+model DiaryEntry {
+  id           String    @id @default(cuid())
+  characterId  String
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  key          String
+  params       Json?
+  createdAtGame DateTime
+  createdAt    DateTime  @default(now())
+
+  @@index([characterId, createdAtGame])
+}
+
+// One of the last places the character was seen (private "recent places" list).
+model LocaleVisit {
+  id            String    @id @default(cuid())
+  characterId   String
+  character     Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  localeId      String
+  visitedAtGame DateTime
+
+  @@index([characterId, visitedAtGame])
+}
+
+// Single personal bank account; balance earns capped weekly interest.
+model BankAccount {
+  id                 String    @id @default(cuid())
+  characterId        String    @unique
+  character          Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  balance            Int       @default(0)
+  lastInterestGameAt DateTime
+  openedAt           DateTime  @default(now())
 }

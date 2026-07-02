@@ -34,8 +34,14 @@ import {
   PR_AGENT_WEEKLY_FEE,
   FAN_CLUB_FOUNDING_FEE,
   fanClubReachBoost,
+  addAttributeXp,
+  DP_ATTRIBUTE_COST,
+  DP_ATTRIBUTE_XP,
+  DP_SKILL_COST,
   type MeterState,
 } from "@fameworld/game-engine";
+import { writeDiary, recordVisit } from "@/lib/diary";
+import { FREE_TIME_FOCUSES, CAREER_FOCUSES, ATTITUDES } from "@/lib/characterOptions";
 import { worldClock } from "@/lib/world";
 import { requireUserId } from "@/lib/session";
 import { setFlash } from "@/lib/flash";
@@ -169,6 +175,7 @@ export async function travelAction(formData: FormData): Promise<void> {
     where: { id: c.id },
     data: { currentLocaleId: localeId },
   });
+  await recordVisit(c.id, localeId);
   await setFlash("walkedTo", { name: dest.name });
   revalidatePath(`/${locale}/locale/${localeId}`);
   revalidatePath(`/${locale}/city`);
@@ -491,6 +498,7 @@ export async function composeSongAction(locale: string): Promise<void> {
       data: { value: { decrement: 8 }, anchorAt: new Date() },
     }),
   ]);
+  await writeDiary(c.id, "composed", { title: song.title });
   revalidatePath(`/${locale}/band`);
 }
 
@@ -640,6 +648,11 @@ export async function performConcertAction(formData: FormData): Promise<void> {
       });
     }
   });
+  await writeDiary(c.id, "concert", {
+    venue: venue.name,
+    attendance: outcome.attendance,
+    review: outcome.reviewScore,
+  });
   revalidatePath(`/${locale}/band`);
   revalidatePath(`/${locale}`, "layout");
 }
@@ -708,6 +721,7 @@ export async function recordReleaseAction(formData: FormData): Promise<void> {
       },
     }),
   ]);
+  await writeDiary(c.id, "recorded", { title });
   revalidatePath(`/${locale}/band`);
 }
 
@@ -1219,6 +1233,7 @@ export async function giveInterviewAction(locale: string): Promise<void> {
       data: { value: { decrement: 6 }, anchorAt: new Date() },
     });
   });
+  await writeDiary(c.id, "interviewed");
   revalidatePath(`/${locale}/press`);
   revalidatePath(`/${locale}`, "layout");
 }
@@ -1291,5 +1306,213 @@ export async function foundFanClubAction(locale: string): Promise<void> {
     }),
   ]);
   revalidatePath(`/${locale}/press`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Character section (Faz U1): development points, focuses, banking, bio
+// ---------------------------------------------------------------------------
+
+const dpAttributeSchema = z.object({ attribute: z.string(), locale: z.string() });
+
+/** Spend DP to train an attribute (fixed XP per session). */
+export async function spendDpOnAttributeAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = dpAttributeSchema.safeParse({
+    attribute: formData.get("attribute"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success || !ATTRIBUTES.includes(parsed.data.attribute as (typeof ATTRIBUTES)[number]))
+    return;
+
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || c.dp < DP_ATTRIBUTE_COST) return;
+
+  const attr = await prisma.characterAttribute.findUnique({
+    where: { characterId_attribute: { characterId: c.id, attribute: parsed.data.attribute } },
+  });
+  if (!attr) return;
+  const next = addAttributeXp({ level: attr.level, xp: attr.xp }, DP_ATTRIBUTE_XP);
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: { dp: { decrement: DP_ATTRIBUTE_COST } },
+    }),
+    prisma.characterAttribute.update({ where: { id: attr.id }, data: next }),
+  ]);
+  await setFlash("dpAttributeSpent");
+  revalidatePath(`/${parsed.data.locale}/develop`);
+  revalidatePath(`/${parsed.data.locale}`, "layout");
+}
+
+const dpSkillSchema = z.object({ skillId: z.string(), locale: z.string() });
+
+/** Spend DP to raise a skill one level (respects prerequisite and cap). */
+export async function spendDpOnSkillAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = dpSkillSchema.safeParse({
+    skillId: formData.get("skillId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const { skillId, locale } = parsed.data;
+
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || c.dp < DP_SKILL_COST) return;
+  if (!(await prereqMet(c.id, skillId))) return;
+
+  const [skill, current] = await Promise.all([
+    prisma.skill.findUnique({ where: { id: skillId } }),
+    prisma.characterSkill.findUnique({
+      where: { characterId_skillId: { characterId: c.id, skillId } },
+    }),
+  ]);
+  if (!skill) return;
+  const fromLevel = current?.level ?? 0;
+  if (fromLevel >= skill.maxLevel) return;
+
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { dp: { decrement: DP_SKILL_COST } } }),
+    prisma.characterSkill.upsert({
+      where: { characterId_skillId: { characterId: c.id, skillId } },
+      update: { level: fromLevel + 1 },
+      create: { characterId: c.id, skillId, level: fromLevel + 1 },
+    }),
+  ]);
+  await setFlash("dpSkillSpent", { name: skill.name });
+  revalidatePath(`/${locale}/develop`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+const focusSchema = z.object({
+  freeTime: z.enum(FREE_TIME_FOCUSES),
+  career: z.enum(CAREER_FOCUSES),
+  locale: z.string().default("en"),
+});
+
+/** Choose the free-time pastime and the career focus. */
+export async function setFocusAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = focusSchema.safeParse({
+    freeTime: formData.get("freeTime"),
+    career: formData.get("career"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const c = await loadLivingCharacter(userId);
+  await prisma.character.update({
+    where: { id: c.id },
+    data: { freeTimeFocus: parsed.data.freeTime, careerFocus: parsed.data.career },
+  });
+  await setFlash("focusSet");
+  revalidatePath(`/${parsed.data.locale}/focus`);
+}
+
+const attitudeSchema = z.object({
+  attitude: z.enum(ATTITUDES),
+  locale: z.string().default("en"),
+});
+
+/** Choose the character's public demeanour. */
+export async function setAttitudeAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = attitudeSchema.safeParse({
+    attitude: formData.get("attitude"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const c = await loadLivingCharacter(userId);
+  await prisma.character.update({
+    where: { id: c.id },
+    data: { attitude: parsed.data.attitude },
+  });
+  await setFlash("attitudeSet");
+  revalidatePath(`/${parsed.data.locale}/personality`);
+}
+
+const bioSchema = z.object({ bio: z.string().max(2000), locale: z.string().default("en") });
+
+/** Update the self-written biography on the background page. */
+export async function setBioAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = bioSchema.safeParse({
+    bio: formData.get("bio") ?? "",
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const c = await loadLivingCharacter(userId);
+  await prisma.character.update({
+    where: { id: c.id },
+    data: { bio: parsed.data.bio.trim() || null },
+  });
+  await setFlash("bioSaved");
+  revalidatePath(`/${parsed.data.locale}/bio`);
+}
+
+const bankSchema = z.object({
+  amount: z.coerce.number().int().min(1).max(100_000_000),
+  locale: z.string().default("en"),
+});
+
+/** Deposit pocket cash into the bank account (opens one if needed). */
+export async function bankDepositAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = bankSchema.safeParse({
+    amount: formData.get("amount"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const { amount, locale } = parsed.data;
+
+  const c = await loadLivingCharacter(userId);
+  if (c.money < amount) return;
+
+  await prisma.$transaction([
+    prisma.character.update({ where: { id: c.id }, data: { money: { decrement: amount } } }),
+    prisma.bankAccount.upsert({
+      where: { characterId: c.id },
+      update: { balance: { increment: amount } },
+      create: {
+        characterId: c.id,
+        balance: amount,
+        lastInterestGameAt: worldClock.toGameTime(),
+      },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -amount, type: TxnType.OTHER, memo: "Bank deposit" },
+    }),
+  ]);
+  await setFlash("deposited", { amount });
+  revalidatePath(`/${locale}/finances`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+/** Withdraw from the bank account into pocket cash. */
+export async function bankWithdrawAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = bankSchema.safeParse({
+    amount: formData.get("amount"),
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const { amount, locale } = parsed.data;
+
+  const c = await loadLivingCharacter(userId);
+  const account = await prisma.bankAccount.findUnique({ where: { characterId: c.id } });
+  if (!account || account.balance < amount) return;
+
+  await prisma.$transaction([
+    prisma.bankAccount.update({
+      where: { id: account.id },
+      data: { balance: { decrement: amount } },
+    }),
+    prisma.character.update({ where: { id: c.id }, data: { money: { increment: amount } } }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount, type: TxnType.OTHER, memo: "Bank withdrawal" },
+    }),
+  ]);
+  await setFlash("withdrawn", { amount });
+  revalidatePath(`/${locale}/finances`);
   revalidatePath(`/${locale}`, "layout");
 }

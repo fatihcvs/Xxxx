@@ -16,28 +16,56 @@ const CHARACTER_MENU: Group[] = [
     items: [
       { href: "/home", key: "overview" },
       { href: "/awards", key: "achievements" },
+      { href: "/diary", key: "diary" },
+      { href: "/blog", key: "blog" },
+      { href: "/bio", key: "background" },
+      { href: "/family", key: "family" },
       { href: "/relationships", key: "relationships" },
       { href: "/attributes", key: "bodyHealth" },
+      { href: "/player", key: "playerInfo" },
     ],
   },
   {
     title: "gCareer",
     items: [
+      { href: "/focus", key: "focuses" },
+      { href: "/develop", key: "develop" },
+      { href: "/invitations", key: "invitations" },
       { href: "/skills", key: "skills" },
+      { href: "/flights", key: "flights" },
+      { href: "/events", key: "events" },
+      { href: "/tasks", key: "tasks" },
+      { href: "/parties", key: "parties" },
+      { href: "/activities", key: "activities" },
       { href: "/career", key: "employment" },
-      { href: "/press", key: "press" },
+      { href: "/personality", key: "personality" },
+      { href: "/recipes", key: "recipes" },
     ],
   },
   {
     title: "gAssets",
     items: [
+      { href: "/items", key: "items" },
+      { href: "/housing", key: "housing" },
       { href: "/finances", key: "economy" },
+      { href: "/vehicles", key: "vehicles" },
+      { href: "/shares", key: "shares" },
       { href: "/estate", key: "estate" },
     ],
   },
   {
+    title: "gTrade",
+    items: [
+      { href: "/shopping", key: "shoppingAssistant" },
+      { href: "/gifts", key: "gifts" },
+    ],
+  },
+  {
     title: "gExtras",
-    items: [{ href: "/messages", key: "messages" }],
+    items: [
+      { href: "/messages", key: "messages" },
+      { href: "/press", key: "press" },
+    ],
   },
 ];
 

@@ -36,7 +36,7 @@ Mevcut UI modern/sade bir düzen kullanıyor; birebir klon hedefi için aşağı
 Her U-fazı: şema + engine + worker + UI (klasik iskelette) + i18n (TR/EN) + test +
 commit. Sıra, oyuncunun her gün dokunduğu yüzeyden dışarı doğru genişler.
 
-### Faz U0 — Klasik Arayüz Kabuğu (her şeyin temeli)
+### ✅ Faz U0 — Klasik Arayüz Kabuğu (TAMAMLANDI)
 - Sabit genişlik (~1000px) ortalanmış düzen; **iki kolon**: geniş içerik + sağda
   **bağlam menüsü** (bölüme göre gruplu link listeleri, VIP öğeleri ★).
 - **Header:** logo; **oyun günü adı + saat**; enerji göstergesi; bildirim zili.
@@ -49,7 +49,20 @@ commit. Sıra, oyuncunun her gün dokunduğu yüzeyden dışarı doğru genişle
 - Mevcut tüm sayfalar bu kabuğa taşınır (route'lar korunur).
 - Karakter/sanatçı/mekân **üstbilgi blokları** (DESIGN.md B4–B6).
 
-### Faz U1 — Karakter Bölümü (5 menü grubu, ~33 sayfa)
+### ✅ Faz U1 — Karakter Bölümü (TAMAMLANDI — ilk dilim)
+Tamamlanan: bağlam menüsü 5 grup/31 sayfa; **Günlük** (otomatik kayıt motoru:
+beste/konser/kayıt/röportaj) + Genel Bilgiler'de son kayıtlar + **Yakın Takip**
+(son 5 mekân); **Beden ve Sağlık** tam panel seti (özellik tablosu sayı+sıfat,
+ruh hâli/sağlık, hastalık/bağımlılık/ameliyat/dövme/bağışıklık boş durumları);
+**Karakteri Geliştir** (Pazar DP dağıtımı + özellik/yetenek harcama);
+**Odaklar**; **Kişilik** (tavır); **Ekonomi** (nakit + faturalar + **banka**:
+yatır/çek + haftalık faiz); **Aile**, **Geçmiş** (bio formu), **Oyuncu
+Bilgileri**, **Eşyalar**, **Barınma** + 12 iskelet sayfa (Blog, Davetiyeler,
+Uçuşlar, Etkinlikler, Görevler, Partiler, Aktiviteler, Tarifler, Araçlar,
+Hisseler, Alışveriş Yardımcısı, Hediyeler). Kalan: iskeletlerin sistemleri
+(ilgili U-fazlarında dolar).
+
+Orijinal plan (Faz U1 — Karakter Bölümü, 5 menü grubu, ~33 sayfa):
 - **Karakter:** Genel Bilgiler (günlük özetleri + Yakın Takip + kıyafet/dövme
   paneli), Başarılar (mevcut + "ilk üç seçimi"), **Günlük** (otomatik kayıt motoru:
   her önemli olay günlüğe yazar), **Blog**, Geçmiş ve Diğer Bilgiler (biyografi),

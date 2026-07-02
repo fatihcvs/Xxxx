@@ -82,3 +82,16 @@ export function gameFridaysPassed(sinceGame: Date, toGame: Date): number {
   const countLE = (n: number) => Math.floor((n - 1) / 7) + 1; // # of Fridays in [0..n]
   return countLE(b) - countLE(a);
 }
+
+/**
+ * Number of in-game Sundays strictly after `sinceGame` and up to (including)
+ * `toGame`. With day 0 a Thursday, Sundays are day numbers d with d % 7 === 3.
+ * Drives the weekly development-point grant.
+ */
+export function gameSundaysPassed(sinceGame: Date, toGame: Date): number {
+  const a = gameDayNumber(sinceGame);
+  const b = gameDayNumber(toGame);
+  if (b <= a) return 0;
+  const countLE = (n: number) => Math.floor((n - 3) / 7) + 1; // # of Sundays in [0..n]
+  return countLE(b) - countLE(a);
+}

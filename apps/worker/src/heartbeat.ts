@@ -21,6 +21,9 @@ import {
   GOSSIP_MIN_STAR,
   GOSSIP_STAR_LOSS,
   fanClubWeeklyGrowth,
+  gameSundaysPassed,
+  WEEKLY_DP,
+  bankInterestForWeek,
   AWARD_CATEGORIES,
   AWARD_BAND_FAME_BONUS,
   AWARD_STAR_BONUS,
@@ -62,6 +65,8 @@ export interface HeartbeatResult {
   fanClubsGrown: number;
   awardShowsHeld: number;
   achievementsEarned: number;
+  dpGranted: number;
+  interestPaid: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -653,6 +658,66 @@ async function sweepAwardShow(nowGame: Date): Promise<number> {
   return 1;
 }
 
+/** Grant weekly development points on in-game Sundays. */
+async function sweepDpGrant(nowGame: Date): Promise<number> {
+  const players = await prisma.character.findMany({
+    where: { isAlive: true, userId: { not: null } },
+    select: { id: true, lastDpGrantGameAt: true },
+  });
+  let granted = 0;
+  for (const c of players) {
+    if (!c.lastDpGrantGameAt) {
+      await prisma.character.update({ where: { id: c.id }, data: { lastDpGrantGameAt: nowGame } });
+      continue;
+    }
+    const sundays = gameSundaysPassed(c.lastDpGrantGameAt, nowGame);
+    if (sundays <= 0) continue;
+    await prisma.character.update({
+      where: { id: c.id },
+      data: { dp: { increment: WEEKLY_DP * sundays }, lastDpGrantGameAt: nowGame },
+    });
+    granted += 1;
+  }
+  return granted;
+}
+
+/** Pay capped weekly interest on bank-account balances. */
+async function sweepBankInterest(nowGame: Date): Promise<number> {
+  const accounts = await prisma.bankAccount.findMany();
+  let paid = 0;
+  for (const acc of accounts) {
+    const weeks = gameWeeksBetween(acc.lastInterestGameAt, nowGame);
+    if (weeks <= 0) continue;
+    let interest = 0;
+    let balance = acc.balance;
+    for (let w = 0; w < weeks; w++) {
+      const gain = bankInterestForWeek(balance);
+      interest += gain;
+      balance += gain;
+    }
+    await prisma.$transaction([
+      prisma.bankAccount.update({
+        where: { id: acc.id },
+        data: { balance, lastInterestGameAt: nowGame },
+      }),
+      ...(interest > 0
+        ? [
+            prisma.transaction.create({
+              data: {
+                characterId: acc.characterId,
+                amount: interest,
+                type: TxnType.OTHER,
+                memo: "Bank interest",
+              },
+            }),
+          ]
+        : []),
+    ]);
+    if (interest > 0) paid += 1;
+  }
+  return paid;
+}
+
 /** Evaluate the achievement catalogue for player characters and grant new trophies. */
 async function sweepAchievements(): Promise<number> {
   // Ensure the catalogue rows exist (codes come from the engine).
@@ -753,6 +818,8 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const fanClubsGrown = await sweepFanClubs(nowGame);
   const awardShowsHeld = await sweepAwardShow(nowGame);
   const achievementsEarned = await sweepAchievements();
+  const dpGranted = await sweepDpGrant(nowGame);
+  const interestPaid = await sweepBankInterest(nowGame);
   return {
     fameDecayed,
     prFeesCharged,
@@ -760,6 +827,8 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
     fanClubsGrown,
     awardShowsHeld,
     achievementsEarned,
+    dpGranted,
+    interestPaid,
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
     discharged: hospital.discharged,
