@@ -25,3 +25,13 @@ export function formatGameDate(gameTime: Date = worldClock.toGameTime()): string
   const y = gameTime.getUTCFullYear();
   return `${d} ${m} ${y}`;
 }
+
+/** In-game weekday index (0=Sunday) and HH:MM clock for the page header. */
+export function gameClockParts(gameTime: Date = worldClock.toGameTime()): {
+  day: number;
+  time: string;
+} {
+  const hh = String(gameTime.getUTCHours()).padStart(2, "0");
+  const mm = String(gameTime.getUTCMinutes()).padStart(2, "0");
+  return { day: gameTime.getUTCDay(), time: `${hh}:${mm}` };
+}

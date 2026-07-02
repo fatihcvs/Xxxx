@@ -2,7 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma, PropertyKind } from "@fameworld/db";
-import { buyPropertyAction, foundBusinessAction, goVipAction } from "@/app/actions/game";
+import { buyPropertyAction, foundBusinessAction } from "@/app/actions/game";
 
 const BUSINESS_TYPES = [
   { type: "Cafe", price: 2000 },
@@ -25,13 +25,11 @@ export default async function EstatePage({
     include: {
       properties: true,
       businesses: true,
-      user: { select: { vipUntil: true } },
     },
   });
   if (!me) redirect(`/${locale}/create`);
 
   const t = await getTranslations("estate");
-  const isVip = !!me.user?.vipUntil && me.user.vipUntil.getTime() > Date.now();
 
   return (
     <div className="space-y-4">
@@ -112,24 +110,6 @@ export default async function EstatePage({
         </div>
       </div>
 
-      {/* VIP */}
-      <div className="panel">
-        <div className="panel-header">{t("vip")}</div>
-        <div className="panel-body text-sm">
-          {isVip ? (
-            <p className="text-brand">
-              {t("vipActive", { date: me.user!.vipUntil!.toLocaleDateString(locale) })}
-            </p>
-          ) : (
-            <form action={goVipAction.bind(null, locale)} className="flex items-center justify-between">
-              <span>{t("vipInfo")}</span>
-              <button className="btn" disabled={me.money < 3000}>
-                {t("goVip")} (§3000)
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

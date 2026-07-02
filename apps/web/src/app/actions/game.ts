@@ -38,6 +38,7 @@ import {
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
 import { requireUserId } from "@/lib/session";
+import { setFlash } from "@/lib/flash";
 import { ALL_FIRST_NAMES, LAST_NAMES } from "@/lib/names";
 
 const MS_PER_GAME_YEAR = 365 * 24 * 60 * 60 * 1000;
@@ -168,6 +169,7 @@ export async function travelAction(formData: FormData): Promise<void> {
     where: { id: c.id },
     data: { currentLocaleId: localeId },
   });
+  await setFlash("walkedTo", { name: dest.name });
   revalidatePath(`/${locale}/locale/${localeId}`);
   revalidatePath(`/${locale}/city`);
 }
@@ -175,6 +177,7 @@ export async function travelAction(formData: FormData): Promise<void> {
 export async function restAction(locale: string): Promise<void> {
   const userId = await requireUserId();
   await applyDeltas(userId, { ENERGY: +25, MOOD: +4 });
+  await setFlash("rested");
   revalidatePath(`/${locale}`, "layout");
 }
 
@@ -188,6 +191,7 @@ export async function eatAction(locale: string): Promise<void> {
     data: { characterId: c.id, amount: -price, type: TxnType.PURCHASE, memo: "Meal" },
   });
   await applyDeltas(userId, { HEALTH: +10, MOOD: +6, ENERGY: +8 });
+  await setFlash("ate");
   revalidatePath(`/${locale}`, "layout");
 }
 

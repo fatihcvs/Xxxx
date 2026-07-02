@@ -3,8 +3,11 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getCharacterForUser } from "@/lib/character";
-import { StatusBar } from "@/components/StatusBar";
-import { NavMenu } from "@/components/NavMenu";
+import { gameClockParts } from "@/lib/world";
+import { readFlash } from "@/lib/flash";
+import { CharacterHeader } from "@/components/CharacterHeader";
+import { MainMenu } from "@/components/MainMenu";
+import { ContextMenu } from "@/components/ContextMenu";
 
 export default async function GameLayout({
   children,
@@ -22,26 +25,59 @@ export default async function GameLayout({
   const character = await getCharacterForUser(session.user.id);
   if (!character) redirect(`/${locale}/create`);
 
-  const t = await getTranslations("app");
+  const [tApp, tClock, tFlash] = await Promise.all([
+    getTranslations("app"),
+    getTranslations("clock"),
+    getTranslations("flash"),
+  ]);
+  const clock = gameClockParts();
+  const flash = await readFlash();
 
   return (
-    <div className="min-h-screen">
-      {/* Wordmark band */}
-      <div className="bg-brand text-white">
-        <div className="mx-auto max-w-5xl px-4 py-2.5 text-center">
-          <span className="text-lg font-extrabold tracking-tight">{t("name")}</span>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#dddddd]">
+      <div className="mx-auto max-w-[1000px] bg-white shadow-md">
+        {/* Header: wordmark + in-game clock + energy + notification bell. */}
+        <header className="flex items-center justify-between border-b border-[#cccccc] px-3 py-2">
+          <span className="text-[18px] font-extrabold tracking-tight text-brand">
+            {tApp("name")}
+          </span>
+          <div className="flex items-center gap-4 text-[11px]">
+            <span>
+              <b>{tClock(`d${clock.day}`)}</b> {clock.time}
+            </span>
+            <span title={tClock("energy")}>
+              ⚡ <b>{character.meters.energy}</b>
+            </span>
+            <span title={tClock("noNews")} className="cursor-default">
+              🔔
+            </span>
+          </div>
+        </header>
 
-      <div className="mx-auto max-w-5xl p-4">
-        <StatusBar character={character} />
-        {/* Content on the left, grouped navigation sidebar on the right (classic layout). */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_210px] gap-4">
-          <section className="order-2 md:order-1">{children}</section>
-          <aside className="order-1 md:order-2">
-            <NavMenu locale={locale} />
-          </aside>
+        <MainMenu />
+
+        <div className="game-content px-3 pb-6">
+          {/* Feedback line: one-shot action result, or the idle pattern. */}
+          {flash ? (
+            <p className="flashline">{tFlash(flash.key, flash.params)}</p>
+          ) : (
+            <p className="flashline empty">{tFlash("none")}</p>
+          )}
+
+          <CharacterHeader character={character} />
+
+          {/* Wide content column + right context menu. */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_240px]">
+            <section className="min-w-0">{children}</section>
+            <aside>
+              <ContextMenu />
+            </aside>
+          </div>
         </div>
+
+        <footer className="border-t border-[#cccccc] px-3 py-2 text-[10px] text-[#888888]">
+          {tApp("footer")}
+        </footer>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Fameworld",
-    "tagline": "Müzik hayatını yaşa."
+    "tagline": "Müzik hayatını yaşa.",
+    "footer": "Fameworld — müzik ve şöhretin yaşayan dünyası. Tüm içerik özgündür."
   },
   "nav": {
     "home": "Karakterim",
@@ -24,7 +25,15 @@
     "grpWorld": "Dünya",
     "grpMoney": "Ekonomi",
     "press": "Basın & PR",
-    "awards": "Ödüller"
+    "awards": "Ödüller",
+    "place": "Mekân",
+    "character": "Karakter",
+    "artist": "Sanatçı",
+    "company": "Şirket",
+    "guide": "Rehber",
+    "rankings": "Sıralamalar",
+    "social": "Sosyal",
+    "shop": "Dükkân"
   },
   "skills": {
     "mastersHere": "Şehrindeki ustalar",
@@ -292,5 +301,95 @@
     "achMAYOR": "Başkan seçildi",
     "achSKILL_MASTER": "Bir yetenekte ustalık (5★)",
     "achPARENT": "Ebeveyn oldu"
+  },
+  "clock": {
+    "d0": "Pazar",
+    "d1": "Pazartesi",
+    "d2": "Salı",
+    "d3": "Çarşamba",
+    "d4": "Perşembe",
+    "d5": "Cuma",
+    "d6": "Cumartesi",
+    "energy": "Enerji",
+    "noNews": "Bildirimler"
+  },
+  "flash": {
+    "none": "Görüntülenecek yeni bir bilgi yok.",
+    "walkedTo": "İyi geldi bu yürüyüş! {name} adlı mekâna vardınız.",
+    "rested": "Biraz soluklandınız ve dinlenmiş hissediyorsunuz.",
+    "ate": "Tam yerine oturdu. Güzel bir yemek yediniz."
+  },
+  "charHeader": {
+    "age": "{name}, {age} yaşında.",
+    "location": "{name}, <city></city> şehrinde, <locale></locale> konumunda.",
+    "outside": "sokaklarda",
+    "hospitalized": "Şu anda hastane bakımında.",
+    "develop": "Geliştir",
+    "bodyHealth": "Beden ve Sağlık",
+    "press": "Basın",
+    "mood": "Ruh Hâli",
+    "health": "Sağlık",
+    "energy": "Enerji",
+    "cash": "Nakit",
+    "star": "Yıldız değeri"
+  },
+  "ctx": {
+    "gCharacter": "Karakter",
+    "overview": "Genel Bilgiler",
+    "achievements": "Başarılar",
+    "relationships": "İlişkiler",
+    "bodyHealth": "Beden ve Sağlık",
+    "gCareer": "Kariyer ve Aktivite",
+    "skills": "Yetenekler",
+    "employment": "İstihdam",
+    "press": "Basın ve PR",
+    "gAssets": "Varlıklar",
+    "economy": "Ekonomi",
+    "estate": "Mülk ve İşletme",
+    "gExtras": "Ekstralar",
+    "messages": "Mesajlar",
+    "gArtist": "Sanatçı",
+    "artistOverview": "Genel Bilgiler",
+    "gRankings": "Sıralamalar",
+    "charts": "Listeler",
+    "gCity": "Şehir",
+    "cityPage": "Şehir Sayfası",
+    "politics": "Politika",
+    "gPlace": "Mekân",
+    "currentPlace": "Bulunduğun Yer",
+    "gShop": "Dükkân",
+    "vip": "VIP Üyelik",
+    "gGuide": "Rehber",
+    "guideHome": "Rehber Ana Sayfası"
+  },
+  "guide": {
+    "title": "Fameworld Rehberine Hoş Geldiniz",
+    "intro": "Bu dünyada ayaklarının üstünde durman için gereken her şey: aşağıdan bir konu seç. Rehber, oyunla birlikte büyür.",
+    "menuTitle": "Rehber Menüsü",
+    "topic_start": "Başlangıç",
+    "topic_start_sub": "ilk günlerin, göstergeler ve para",
+    "topic_music": "Müzik Kariyeri",
+    "topic_music_sub": "gruplar, şarkılar, provalar, konserler ve kayıtlar",
+    "topic_economy": "İş ve Ekonomi",
+    "topic_economy_sub": "işler, maaş günleri, kira ve mülk",
+    "topic_social": "Sosyal Hayat",
+    "topic_social_sub": "ilişkiler, mesajlar ve aile",
+    "topic_world": "Dünya",
+    "topic_world_sub": "şehirler, mekânlar ve politika",
+    "topic_health": "Beden ve Sağlık",
+    "topic_health_sub": "ruh hâli, sağlık, enerji ve hastane"
+  },
+  "shop": {
+    "title": "Dükkâna Hoş Geldiniz",
+    "intro": "Oyunu destekleyen ekstralar burada. Oynamak için gereken her şey ise dünyanın içinde kazanılır.",
+    "vipTitle": "VIP Üyelik",
+    "vipPitch": "VIP, dünyayı destekler ve 30 gerçek gün boyunca bir dizi kolaylık açar.",
+    "vipPerk1": "Tüm zamanlı çalışmalarda daha hızlı öğrenme.",
+    "vipPerk2": "Adının yanında VIP rozeti.",
+    "vipPerk3": "Oyun büyüdükçe yeni VIP ayrıcalıkları eklenir.",
+    "vipActive": "VIP üyeliğin {date} tarihine kadar geçerli.",
+    "buyVip": "VIP Satın Al ({price} M$)",
+    "creditsTitle": "Krediler",
+    "creditsSoon": "Kredi ürünleri (ikramlar, yardımcılar ve ek içerik) yolda."
   }
 }

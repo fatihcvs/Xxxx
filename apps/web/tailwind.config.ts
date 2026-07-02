@@ -6,10 +6,16 @@ export default {
     extend: {
       colors: {
         panel: "#ffffff",
-        ink: "#2b3038",
-        brand: "#5b6ea8", // calm slate-blue accent (easy on the eyes)
-        brandDark: "#465684",
-        soft: "#eaeef3", // soft blue-grey background
+        ink: "#111111",
+        // Classic link blue (brand doubles as the link/action colour).
+        brand: "#09639a",
+        brandDark: "#0078a3",
+        soft: "#eeeeee", // light grey used for header bands and boxes
+        accent: "#ffcc00", // selection / highlight
+        alert: "#f58400", // warnings / attention
+      },
+      fontFamily: {
+        game: ['"Lucida Grande"', '"Lucida Sans Unicode"', "Verdana", "sans-serif"],
       },
     },
   },

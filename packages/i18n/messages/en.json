@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Fameworld",
-    "tagline": "Live the music life."
+    "tagline": "Live the music life.",
+    "footer": "Fameworld — a living world of music and fame. All content is original."
   },
   "nav": {
     "home": "My Character",
@@ -24,7 +25,15 @@
     "grpWorld": "World",
     "grpMoney": "Economy",
     "press": "Press & PR",
-    "awards": "Awards"
+    "awards": "Awards",
+    "place": "Place",
+    "character": "Character",
+    "artist": "Artist",
+    "company": "Company",
+    "guide": "Guide",
+    "rankings": "Rankings",
+    "social": "Social",
+    "shop": "Shop"
   },
   "skills": {
     "mastersHere": "Masters in your city",
@@ -292,5 +301,95 @@
     "achMAYOR": "Elected mayor",
     "achSKILL_MASTER": "Mastered a skill (5★)",
     "achPARENT": "Became a parent"
+  },
+  "clock": {
+    "d0": "Sunday",
+    "d1": "Monday",
+    "d2": "Tuesday",
+    "d3": "Wednesday",
+    "d4": "Thursday",
+    "d5": "Friday",
+    "d6": "Saturday",
+    "energy": "Energy",
+    "noNews": "Notifications"
+  },
+  "flash": {
+    "none": "Nothing new to show right now.",
+    "walkedTo": "What a stroll! You walked over to {name}.",
+    "rested": "You took a breather and feel rested.",
+    "ate": "That hit the spot. You had a proper meal."
+  },
+  "charHeader": {
+    "age": "{name} is {age} years old.",
+    "location": "{name} is in <city></city>, at <locale></locale>.",
+    "outside": "the streets",
+    "hospitalized": "Currently under hospital care.",
+    "develop": "Develop",
+    "bodyHealth": "Body & Health",
+    "press": "Press",
+    "mood": "Mood",
+    "health": "Health",
+    "energy": "Energy",
+    "cash": "Cash",
+    "star": "Star value"
+  },
+  "ctx": {
+    "gCharacter": "Character",
+    "overview": "Overview",
+    "achievements": "Achievements",
+    "relationships": "Relationships",
+    "bodyHealth": "Body & Health",
+    "gCareer": "Career & Activity",
+    "skills": "Skills",
+    "employment": "Employment",
+    "press": "Press & PR",
+    "gAssets": "Assets",
+    "economy": "Economy",
+    "estate": "Estate & Business",
+    "gExtras": "Extras",
+    "messages": "Messages",
+    "gArtist": "Artist",
+    "artistOverview": "Overview",
+    "gRankings": "Rankings",
+    "charts": "Charts",
+    "gCity": "City",
+    "cityPage": "City Page",
+    "politics": "Politics",
+    "gPlace": "Place",
+    "currentPlace": "Where You Are",
+    "gShop": "Shop",
+    "vip": "VIP Membership",
+    "gGuide": "Guide",
+    "guideHome": "Guide Home"
+  },
+  "guide": {
+    "title": "Welcome to the Fameworld Guide",
+    "intro": "Everything you need to find your footing in this world: pick a topic below. The guide grows together with the game.",
+    "menuTitle": "Guide Menu",
+    "topic_start": "Getting Started",
+    "topic_start_sub": "your first days, meters and money",
+    "topic_music": "Music Career",
+    "topic_music_sub": "bands, songs, rehearsals, concerts and records",
+    "topic_economy": "Work & Economy",
+    "topic_economy_sub": "jobs, paydays, rent and property",
+    "topic_social": "Social Life",
+    "topic_social_sub": "relationships, messages and family",
+    "topic_world": "The World",
+    "topic_world_sub": "cities, places and politics",
+    "topic_health": "Body & Health",
+    "topic_health_sub": "mood, health, energy and the hospital"
+  },
+  "shop": {
+    "title": "Welcome to the Shop",
+    "intro": "Extras that support the game live here. Everything you need to play is earned in the world itself.",
+    "vipTitle": "VIP Membership",
+    "vipPitch": "VIP supports the world and unlocks a set of comforts for 30 real days.",
+    "vipPerk1": "Faster learning on all timed study.",
+    "vipPerk2": "A VIP badge next to your name.",
+    "vipPerk3": "More VIP perks arrive as the game grows.",
+    "vipActive": "Your VIP membership is active until {date}.",
+    "buyVip": "Buy VIP ({price} M$)",
+    "creditsTitle": "Credits",
+    "creditsSoon": "Credit products (treats, helpers and extra content) are on the way."
   }
 }
