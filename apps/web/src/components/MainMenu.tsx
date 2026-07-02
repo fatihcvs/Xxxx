@@ -9,7 +9,7 @@ import { Link, usePathname } from "@/i18n/routing";
  * section's sub-pages.
  */
 const ITEMS: { href: string; key: string; match: string[] }[] = [
-  { href: "/city", key: "city", match: ["/city", "/politics"] },
+  { href: "/city", key: "city", match: ["/city", "/politics", "/venues"] },
   { href: "/place", key: "place", match: ["/place", "/locale"] },
   {
     href: "/home",

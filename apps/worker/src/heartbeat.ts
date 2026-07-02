@@ -24,6 +24,9 @@ import {
   gameSundaysPassed,
   WEEKLY_DP,
   bankInterestForWeek,
+  gameWeekIndex,
+  lotteryDraw,
+  lotteryPrize,
   AWARD_CATEGORIES,
   AWARD_BAND_FAME_BONUS,
   AWARD_STAR_BONUS,
@@ -67,6 +70,8 @@ export interface HeartbeatResult {
   achievementsEarned: number;
   dpGranted: number;
   interestPaid: number;
+  lotteriesDrawn: number;
+  lotteryWinners: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -658,6 +663,62 @@ async function sweepAwardShow(nowGame: Date): Promise<number> {
   return 1;
 }
 
+/**
+ * Weekly city lottery: draw this week's numbers where missing and resolve
+ * (pay out) tickets from earlier weeks against their draw.
+ */
+async function sweepLottery(nowGame: Date): Promise<{ drawn: number; winners: number }> {
+  const week = gameWeekIndex(nowGame);
+  const cities = await prisma.city.findMany({ select: { id: true } });
+  let drawn = 0;
+
+  for (const city of cities) {
+    const existing = await prisma.lottery.findUnique({
+      where: { cityId_weekIndex: { cityId: city.id, weekIndex: week } },
+    });
+    if (!existing) {
+      await prisma.lottery.create({
+        data: { cityId: city.id, weekIndex: week, numbers: lotteryDraw().join(",") },
+      });
+      drawn += 1;
+    }
+  }
+
+  // Resolve tickets from finished weeks.
+  let winners = 0;
+  const pending = await prisma.lotteryTicket.findMany({
+    where: { resolved: false, weekIndex: { lt: week } },
+  });
+  for (const ticket of pending) {
+    const draw = await prisma.lottery.findUnique({
+      where: { cityId_weekIndex: { cityId: ticket.cityId, weekIndex: ticket.weekIndex } },
+    });
+    const prize = draw
+      ? lotteryPrize(
+          ticket.numbers.split(",").map(Number),
+          draw.numbers.split(",").map(Number),
+        )
+      : 0;
+    await prisma.$transaction(async (tx) => {
+      await tx.lotteryTicket.update({
+        where: { id: ticket.id },
+        data: { resolved: true, prize },
+      });
+      if (prize > 0) {
+        await tx.character.update({
+          where: { id: ticket.characterId },
+          data: { money: { increment: prize } },
+        });
+        await tx.transaction.create({
+          data: { characterId: ticket.characterId, amount: prize, type: TxnType.OTHER, memo: "Lottery prize" },
+        });
+      }
+    });
+    if (prize > 0) winners += 1;
+  }
+  return { drawn, winners };
+}
+
 /** Grant weekly development points on in-game Sundays. */
 async function sweepDpGrant(nowGame: Date): Promise<number> {
   const players = await prisma.character.findMany({
@@ -820,7 +881,10 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const achievementsEarned = await sweepAchievements();
   const dpGranted = await sweepDpGrant(nowGame);
   const interestPaid = await sweepBankInterest(nowGame);
+  const lottery = await sweepLottery(nowGame);
   return {
+    lotteriesDrawn: lottery.drawn,
+    lotteryWinners: lottery.winners,
     fameDecayed,
     prFeesCharged,
     gossipStories,

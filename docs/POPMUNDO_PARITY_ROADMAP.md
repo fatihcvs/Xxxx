@@ -87,7 +87,22 @@ Orijinal plan (Faz U1 — Karakter Bölümü, 5 menü grubu, ~33 sayfa):
   `Invitation`, `Item`+`Inventory`, `BankAccount`, `Loan`, `Bill`, `GiftOffer`,
   `PermissionSet`, `Note`, `Bookmark`.
 
-### Faz U2 — Şehir & Mekân Bölümü
+### ✅ Faz U2 — Şehir & Mekân Bölümü (TAMAMLANDI)
+Tamamlanan: **Şehir sayfası** (`/city`, `/city/[id]`) — nüfus, **Şehir 101**
+dizini (havaalanı, hastane, belediye, adliye, otoyol, kayıp eşya, ibadet evi,
+spor salonu, otel, banka — linkli), **önümüzdeki 7 gün** takvimi (sabit tatil
+seti), **Vali diyor ki** (vali mesajı düzenleme), şehir makaleleri (basın
+entegre), **piyango** (haftalık 5/20 çekiliş + bilet + worker çözümü), son
+konserler, **37 şehirlik** seçici. **Mekânlar** arama sayfası (`/venues`, ad/tür
+filtre). **Mekân sayfası** yeniden: Temel bilgiler (tür/şehir/bölge/idare/kalite
++sıfat/nakit) + Yönetim notu + türe özel eylemler (havaalanı **uçuş**, spor
+salonu **antrenman**, ibadet evi, otel **gece**, banka gişesi). **30+ gerçek
+şehir** + ülkeler + saat dilimleri + bölgeler; **11 yeni mekân türü**. Worker'a
+haftalık piyango çekilişi. `travelAction` artık mekân sayfasına yönlendiriyor;
+tüm oyun sayfaları `force-dynamic`. Kalan (sonraki alt-fazlar): mahkeme/hapishane
+döngüleri (U5), otel konaklama derinliği, radyo.
+
+Orijinal plan (Faz U2 — Şehir & Mekân Bölümü):
 - **Şehir ana sayfası:** nüfus; **Şehir 101** dizini (havaalanı, hastane, belediye,
   adliye, otoyol, kayıp eşya, ibadet evi, spor salonu, otel); **önümüzdeki günler**
   takvimi (tatil/etkinlik); **Vali diyor ki**; şehir makaleleri (basın entegre);

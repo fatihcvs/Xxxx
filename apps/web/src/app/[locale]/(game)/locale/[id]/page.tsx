@@ -2,6 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma, LocaleType } from "@fameworld/db";
+import { adjectiveIndex } from "@fameworld/game-engine";
 import { getCharacterForUser } from "@/lib/character";
 import { Link } from "@/i18n/routing";
 import {
@@ -11,8 +12,13 @@ import {
   buyBookAction,
   enrollCourseAction,
   rentApartmentAction,
+  flyToCityAction,
+  workOutAction,
+  prayAction,
+  hotelRestAction,
 } from "@/app/actions/game";
 
+/** Place page: basic-information box, management note and per-type actions. */
 export default async function LocalePage({
   params,
 }: {
@@ -25,14 +31,20 @@ export default async function LocalePage({
   const character = await getCharacterForUser(session.user.id);
   if (!character) redirect(`/${locale}/create`);
 
-  const t = await getTranslations("locale");
+  const [t, tCity, tAdj] = await Promise.all([
+    getTranslations("locale"),
+    getTranslations("city"),
+    getTranslations("adjectives"),
+  ]);
   const venue = await prisma.locale.findUnique({
     where: { id },
-    include: { jobs: true },
+    include: { jobs: true, city: true, district: true },
   });
-  if (!venue || venue.cityId !== character.currentCityId) notFound();
+  if (!venue) notFound();
 
+  const sameCity = venue.cityId === character.currentCityId;
   const here = character.currentLocaleId === venue.id;
+
   const books =
     venue.type === LocaleType.SHOP
       ? await prisma.book.findMany({ include: { skill: true }, orderBy: { title: "asc" } })
@@ -56,60 +68,172 @@ export default async function LocalePage({
     venue.type === LocaleType.APARTMENT
       ? await prisma.rentContract.findFirst({ where: { characterId: character.id, active: true } })
       : null;
+  const otherCities =
+    venue.type === LocaleType.AIRPORT
+      ? await prisma.city.findMany({
+          where: { id: { not: venue.cityId } },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true },
+        })
+      : [];
 
   return (
     <div className="space-y-4">
       <div className="panel">
-        <div className="panel-header flex items-center justify-between">
-          <span>{venue.name}</span>
-          <span className="text-xs font-normal text-ink/50">{venue.type.toLowerCase()}</span>
+        <div className="panel-header">
+          {venue.name}
+          <span className="idbadge">#{venue.id.slice(-6).toUpperCase()}</span>
         </div>
         <div className="panel-body">
-          {!here && (
-            <p className="text-sm text-ink/60">
-              <Link href="/city" className="text-brand hover:underline">
-                {t("backToCity")}
-              </Link>
-            </p>
-          )}
-          {here && !character.hospitalized && (
-            <div>
-              <h2 className="text-xs uppercase tracking-wide text-ink/50 mb-2">{t("actions")}</h2>
-              <div className="flex flex-wrap gap-2">
-                <form action={restAction.bind(null, locale)}>
-                  <button className="btn-ghost">{t("rest")}</button>
-                </form>
-                {(venue.type === LocaleType.RESTAURANT || venue.type === LocaleType.BAR) && (
-                  <form action={eatAction.bind(null, locale)}>
-                    <button className="btn-ghost">{t("eat")} (§20)</button>
-                  </form>
-                )}
-              </div>
-            </div>
+          <p className="flavor">{t(`d_${venue.type}`)}</p>
+          {!sameCity && (
+            <p className="text-[11px] text-alert">{t("otherCityNote", { city: venue.city.name })}</p>
           )}
         </div>
       </div>
+
+      <div className="panel">
+        <div className="panel-header">{t("basicsTitle")}</div>
+        <div className="panel-body">
+          <table className="data">
+            <tbody>
+              <tr>
+                <td className="w-40 font-bold">{t("bType")}:</td>
+                <td>{tCity(`t_${venue.type}`)}</td>
+              </tr>
+              <tr>
+                <td className="font-bold">{t("bCity")}:</td>
+                <td>
+                  <Link href={`/city/${venue.cityId}`} className="text-brand hover:underline">
+                    {venue.city.name}
+                  </Link>
+                </td>
+              </tr>
+              <tr>
+                <td className="font-bold">{t("bDistrict")}:</td>
+                <td>{venue.district?.name ?? "—"}</td>
+              </tr>
+              <tr>
+                <td className="font-bold">{t("bAdmin")}:</td>
+                <td>{t("cityAdmin", { city: venue.city.name })}</td>
+              </tr>
+              <tr>
+                <td className="font-bold">{t("bQuality")}:</td>
+                <td>
+                  <span className="lvl">
+                    {venue.quality}
+                    <span className="adj">{tAdj(`a${adjectiveIndex(venue.quality)}`)}</span>
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td className="font-bold">{t("bCash")}:</td>
+                <td>{venue.cash.toLocaleString(locale)} M$</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-header">{t("managerNote")}</div>
+        <div className="panel-body">
+          <p>{venue.managerNote ?? t("defaultManagerNote")}</p>
+        </div>
+      </div>
+
+      {here && !character.hospitalized && (
+        <div className="panel">
+          <div className="panel-header">{t("actions")}</div>
+          <div className="panel-body">
+            <div className="flex flex-wrap gap-2">
+              <form action={restAction.bind(null, locale)}>
+                <button className="btn">{t("rest")}</button>
+              </form>
+              {(venue.type === LocaleType.RESTAURANT || venue.type === LocaleType.BAR) && (
+                <form action={eatAction.bind(null, locale)}>
+                  <button className="btn">{t("eat")} (20 M$)</button>
+                </form>
+              )}
+              {venue.type === LocaleType.GYM && (
+                <form action={workOutAction.bind(null, locale)}>
+                  <button className="btn">{t("workOut")}</button>
+                </form>
+              )}
+              {venue.type === LocaleType.TEMPLE && (
+                <form action={prayAction.bind(null, locale)}>
+                  <button className="btn">{t("pray")}</button>
+                </form>
+              )}
+              {venue.type === LocaleType.HOTEL && (
+                <form action={hotelRestAction.bind(null, locale)}>
+                  <button className="btn" disabled={character.money < 80}>
+                    {t("hotelNight")} (80 M$)
+                  </button>
+                </form>
+              )}
+              {venue.type === LocaleType.BANK && (
+                <Link href="/finances" className="btn">
+                  {t("bankDesk")}
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {here && venue.type === LocaleType.AIRPORT && otherCities.length > 0 && (
+        <div className="panel">
+          <div className="panel-header">{t("flightsTitle")}</div>
+          <div className="panel-body">
+            <p className="flavor">{t("flightsFlavor", { cost: 400 })}</p>
+            <form action={flyToCityAction} className="flex items-end gap-2">
+              <div>
+                <label className="mb-1 block text-[10px] text-[#666666]">{t("flyTo")}</label>
+                <select name="cityId" className="field w-56" required>
+                  {otherCities.map((cc) => (
+                    <option key={cc.id} value={cc.id}>
+                      {cc.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <input type="hidden" name="locale" value={locale} />
+              <button className="btn" disabled={character.money < 400}>
+                {t("fly")} (400 M$)
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {venue.jobs.length > 0 && (
         <div className="panel">
           <div className="panel-header">{t("jobsHere")}</div>
           <div className="panel-body">
-            <ul className="divide-y divide-black/5">
-              {venue.jobs.map((job) => (
-                <li key={job.id} className="flex items-center justify-between py-2">
-                  <span className="text-sm">
-                    {job.title} · §{job.salary}/wk
-                  </span>
-                  <form action={applyJobAction}>
-                    <input type="hidden" name="jobId" value={job.id} />
-                    <input type="hidden" name="locale" value={locale} />
-                    <button className="btn-ghost" disabled={!here}>
-                      {t("apply")}
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
+            <table className="data">
+              <tbody>
+                {venue.jobs.map((job) => (
+                  <tr key={job.id}>
+                    <td>
+                      {job.title}
+                      <span className="ml-1 text-[11px] text-[#777777]">
+                        {job.salary} M$ {t("perWeek")}
+                      </span>
+                    </td>
+                    <td className="w-28 text-right">
+                      <form action={applyJobAction}>
+                        <input type="hidden" name="jobId" value={job.id} />
+                        <input type="hidden" name="locale" value={locale} />
+                        <button className="btn" disabled={!here}>
+                          {t("apply")}
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -118,30 +242,40 @@ export default async function LocalePage({
         <div className="panel">
           <div className="panel-header">{t("booksHere")}</div>
           <div className="panel-body">
-            <ul className="divide-y divide-black/5">
-              {books.map((book) => {
-                const owned = ownedBookIds.has(book.id);
-                return (
-                  <li key={book.id} className="flex items-center justify-between py-2">
-                    <span className="text-sm">
-                      {book.title} · {book.skill.name} · §{book.price}
-                    </span>
-                    {owned ? (
-                      <span className="text-xs text-green-600">{t("owned")}</span>
-                    ) : (
-                      <form action={buyBookAction}>
-                        <input type="hidden" name="bookId" value={book.id} />
-                        <input type="hidden" name="locale" value={locale} />
-                        <button className="btn-ghost" disabled={!here || character.money < book.price}>
-                          {t("buy")}
-                        </button>
-                      </form>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="mt-2 text-xs text-ink/50">{t("studyHint")}</p>
+            <table className="data">
+              <tbody>
+                {books.map((book) => {
+                  const owned = ownedBookIds.has(book.id);
+                  return (
+                    <tr key={book.id}>
+                      <td>
+                        {book.title}
+                        <span className="ml-1 text-[11px] text-[#777777]">
+                          {book.skill.name} · {book.price} M$
+                        </span>
+                      </td>
+                      <td className="w-28 text-right">
+                        {owned ? (
+                          <span className="text-[11px] font-bold">{t("owned")}</span>
+                        ) : (
+                          <form action={buyBookAction}>
+                            <input type="hidden" name="bookId" value={book.id} />
+                            <input type="hidden" name="locale" value={locale} />
+                            <button
+                              className="btn"
+                              disabled={!here || character.money < book.price}
+                            >
+                              {t("buy")}
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="flavor mt-2">{t("studyHint")}</p>
           </div>
         </div>
       )}
@@ -150,22 +284,30 @@ export default async function LocalePage({
         <div className="panel">
           <div className="panel-header">{t("coursesHere")}</div>
           <div className="panel-body">
-            <ul className="divide-y divide-black/5">
-              {courses.map((course) => (
-                <li key={course.id} className="flex items-center justify-between py-2">
-                  <span className="text-sm">
-                    {course.title} · §{course.fee}
-                  </span>
-                  <form action={enrollCourseAction}>
-                    <input type="hidden" name="courseId" value={course.id} />
-                    <input type="hidden" name="locale" value={locale} />
-                    <button className="btn-ghost" disabled={!here || character.money < course.fee}>
-                      {t("enroll")}
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
+            <table className="data">
+              <tbody>
+                {courses.map((course) => (
+                  <tr key={course.id}>
+                    <td>
+                      {course.title}
+                      <span className="ml-1 text-[11px] text-[#777777]">{course.fee} M$</span>
+                    </td>
+                    <td className="w-28 text-right">
+                      <form action={enrollCourseAction}>
+                        <input type="hidden" name="courseId" value={course.id} />
+                        <input type="hidden" name="locale" value={locale} />
+                        <button
+                          className="btn"
+                          disabled={!here || character.money < course.fee}
+                        >
+                          {t("enroll")}
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -173,15 +315,15 @@ export default async function LocalePage({
       {venue.type === LocaleType.APARTMENT && (
         <div className="panel">
           <div className="panel-header">{t("housing")}</div>
-          <div className="panel-body text-sm">
+          <div className="panel-body">
             {activeRent ? (
-              <p className="text-green-700">{t("renting")}</p>
+              <p className="font-bold text-brand">{t("renting")}</p>
             ) : (
               <form action={rentApartmentAction} className="flex items-center justify-between">
                 <span>{t("rentInfo", { rent: 150 })}</span>
                 <input type="hidden" name="localeId" value={venue.id} />
                 <input type="hidden" name="locale" value={locale} />
-                <button className="btn-ghost" disabled={!here}>
+                <button className="btn" disabled={!here}>
                   {t("rent")}
                 </button>
               </form>

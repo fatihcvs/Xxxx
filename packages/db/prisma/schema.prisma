@@ -57,6 +57,8 @@ model City {
   taxRate Float   @default(0)
   mayorId String?
   mayor   Character? @relation("Mayor", fields: [mayorId], references: [id])
+  // The mayor's public message shown on the city page.
+  mayorNote String?
 
   locales      Locale[]
   bornHere     Character[] @relation("BornCity")
@@ -67,8 +69,23 @@ model City {
   elections    Election[]
   fanBases     FanBase[]
   newsArticles NewsArticle[]
+  districts    District[]
+  lotteries    Lottery[]
+  lotteryTickets LotteryTicket[]
 
   @@unique([name, countryId])
+}
+
+// A named part of town; places belong to a district.
+model District {
+  id     String @id @default(cuid())
+  name   String
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id])
+
+  locales Locale[]
+
+  @@unique([cityId, name])
 }
 
 enum LocaleType {
@@ -83,6 +100,17 @@ enum LocaleType {
   STADIUM
   RADIO
   PARK
+  CITY_HALL
+  COURTHOUSE
+  PRISON
+  TEMPLE
+  AIRPORT
+  HIGHWAY
+  HOTEL
+  GYM
+  LOST_AND_FOUND
+  BANK
+  STUDIO
 }
 
 model Locale {
@@ -92,6 +120,13 @@ model Locale {
   cityId   String
   city     City       @relation(fields: [cityId], references: [id])
   capacity Int        @default(100) // for venues
+
+  districtId String?
+  district   District? @relation(fields: [districtId], references: [id])
+  // Presentation facts for the place page ("basic information" box).
+  quality     Int     @default(50) // 0..100, shown with a condition adjective
+  cash        Int     @default(0) // the venue's till
+  managerNote String?
 
   jobs     Job[]
   present  Character[] @relation("CurrentLocale")
@@ -191,6 +226,7 @@ model Character {
   diaryEntries DiaryEntry[]
   localeVisits LocaleVisit[]
   bankAccount  BankAccount?
+  lotteryTickets LotteryTicket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -785,4 +821,34 @@ model BankAccount {
   balance            Int       @default(0)
   lastInterestGameAt DateTime
   openedAt           DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// City life (Faz U2): weekly city lottery
+// ---------------------------------------------------------------------------
+
+// One weekly draw per city (weekIndex = whole game-weeks since epoch).
+model Lottery {
+  id        String @id @default(cuid())
+  cityId    String
+  city      City   @relation(fields: [cityId], references: [id])
+  weekIndex Int
+  numbers   String // drawn numbers, comma-separated ascending
+
+  @@unique([cityId, weekIndex])
+}
+
+model LotteryTicket {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  cityId      String
+  city        City      @relation(fields: [cityId], references: [id])
+  weekIndex   Int
+  numbers     String // picked numbers, comma-separated ascending
+  resolved    Boolean   @default(false)
+  prize       Int       @default(0)
+
+  @@unique([characterId, cityId, weekIndex])
+  @@index([resolved, weekIndex])
 }

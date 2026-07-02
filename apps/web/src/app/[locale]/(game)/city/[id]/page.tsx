@@ -1,16 +1,16 @@
 import { setRequestLocale } from "next-intl/server";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@fameworld/db";
 import { CityView } from "@/components/CityView";
 
-/** City section landing page: the character's current city. */
-export default async function CityPage({
+/** View any city's page (read-only unless it is the character's own city). */
+export default async function CityByIdPage({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }) {
-  const { locale } = await params;
+  const { locale, id } = await params;
   setRequestLocale(locale);
   const session = await auth();
   if (!session?.user?.id) redirect(`/${locale}/login`);
@@ -21,12 +21,10 @@ export default async function CityPage({
   });
   if (!me) redirect(`/${locale}/create`);
 
+  const exists = await prisma.city.count({ where: { id } });
+  if (!exists) notFound();
+
   return (
-    <CityView
-      cityId={me.currentCityId}
-      viewerId={me.id}
-      viewerCityId={me.currentCityId}
-      locale={locale}
-    />
+    <CityView cityId={id} viewerId={me.id} viewerCityId={me.currentCityId} locale={locale} />
   );
 }

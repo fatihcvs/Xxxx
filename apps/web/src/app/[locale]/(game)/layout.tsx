@@ -9,6 +9,9 @@ import { CharacterHeader } from "@/components/CharacterHeader";
 import { MainMenu } from "@/components/MainMenu";
 import { ContextMenu } from "@/components/ContextMenu";
 
+// Every game page is per-character state: never statically cache them.
+export const dynamic = "force-dynamic";
+
 export default async function GameLayout({
   children,
   params,

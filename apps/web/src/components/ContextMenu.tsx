@@ -88,6 +88,7 @@ const WORLD_MENU: Group[] = [
     title: "gCity",
     items: [
       { href: "/city", key: "cityPage" },
+      { href: "/venues", key: "venues" },
       { href: "/politics", key: "politics" },
     ],
   },
@@ -117,6 +118,7 @@ function menuFor(pathname: string): Group[] {
     pathname.startsWith("/city") ||
     pathname.startsWith("/locale") ||
     pathname.startsWith("/place") ||
+    pathname.startsWith("/venues") ||
     pathname.startsWith("/politics")
   )
     return WORLD_MENU;

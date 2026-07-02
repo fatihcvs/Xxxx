@@ -38,6 +38,9 @@ import {
   DP_ATTRIBUTE_COST,
   DP_ATTRIBUTE_XP,
   DP_SKILL_COST,
+  gameWeekIndex,
+  lotteryDraw,
+  LOTTERY_TICKET_PRICE,
   type MeterState,
 } from "@fameworld/game-engine";
 import { writeDiary, recordVisit } from "@/lib/diary";
@@ -177,8 +180,9 @@ export async function travelAction(formData: FormData): Promise<void> {
   });
   await recordVisit(c.id, localeId);
   await setFlash("walkedTo", { name: dest.name });
-  revalidatePath(`/${locale}/locale/${localeId}`);
   revalidatePath(`/${locale}/city`);
+  // Walking lands you on the place's page (classic behaviour).
+  redirect(`/${locale}/locale/${localeId}`);
 }
 
 export async function restAction(locale: string): Promise<void> {
@@ -1448,6 +1452,189 @@ export async function setBioAction(formData: FormData): Promise<void> {
   });
   await setFlash("bioSaved");
   revalidatePath(`/${parsed.data.locale}/bio`);
+}
+
+// ---------------------------------------------------------------------------
+// City & places (Faz U2)
+// ---------------------------------------------------------------------------
+
+const FLIGHT_COST = 400;
+const FLIGHT_ENERGY = 25;
+
+const flySchema = z.object({ cityId: z.string(), locale: z.string() });
+
+/** Fly to another city from an airport (costs money and energy). */
+export async function flyToCityAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const { cityId, locale } = flySchema.parse({
+    cityId: formData.get("cityId"),
+    locale: formData.get("locale") ?? "en",
+  });
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || c.money < FLIGHT_COST || cityId === c.currentCityId) return;
+
+  // Must be standing in an airport to catch a flight.
+  const here = c.currentLocaleId
+    ? await prisma.locale.findUnique({ where: { id: c.currentLocaleId } })
+    : null;
+  if (!here || here.type !== LocaleType.AIRPORT) return;
+
+  const dest = await prisma.city.findUnique({ where: { id: cityId } });
+  if (!dest) return;
+  // Land at the destination airport when there is one.
+  const destAirport = await prisma.locale.findFirst({
+    where: { cityId, type: LocaleType.AIRPORT },
+  });
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: {
+        money: { decrement: FLIGHT_COST },
+        currentCityId: cityId,
+        currentLocaleId: destAirport?.id ?? null,
+      },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -FLIGHT_COST, type: TxnType.PURCHASE, memo: `Flight to ${dest.name}` },
+    }),
+    prisma.characterMeter.update({
+      where: { characterId_kind: { characterId: c.id, kind: MeterKind.ENERGY } },
+      data: { value: { decrement: FLIGHT_ENERGY }, anchorAt: new Date() },
+    }),
+  ]);
+  if (destAirport) await recordVisit(c.id, destAirport.id);
+  await writeDiary(c.id, "flew", { city: dest.name });
+  await setFlash("flew", { city: dest.name });
+  revalidatePath(`/${locale}/city`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+/** Work out at the gym: costs energy, trains constitution, lifts mood. */
+export async function workOutAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+  const here = c.currentLocaleId
+    ? await prisma.locale.findUnique({ where: { id: c.currentLocaleId } })
+    : null;
+  if (!here || here.type !== LocaleType.GYM) return;
+
+  const attr = await prisma.characterAttribute.findUnique({
+    where: { characterId_attribute: { characterId: c.id, attribute: "constitution" } },
+  });
+  if (attr) {
+    const next = addAttributeXp({ level: attr.level, xp: attr.xp }, 40);
+    await prisma.characterAttribute.update({ where: { id: attr.id }, data: next });
+  }
+  await applyDeltas(userId, { ENERGY: -18, MOOD: +6 });
+  await setFlash("workedOut");
+  revalidatePath(`/${locale}`, "layout");
+}
+
+/** A quiet moment at the sanctuary: restores mood. */
+export async function prayAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+  const here = c.currentLocaleId
+    ? await prisma.locale.findUnique({ where: { id: c.currentLocaleId } })
+    : null;
+  if (!here || here.type !== LocaleType.TEMPLE) return;
+
+  await applyDeltas(userId, { MOOD: +12, ENERGY: -4 });
+  await setFlash("prayed");
+  revalidatePath(`/${locale}`, "layout");
+}
+
+const HOTEL_NIGHT_PRICE = 80;
+
+/** A paid night at the hotel: a deep rest for body and soul. */
+export async function hotelRestAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt || c.money < HOTEL_NIGHT_PRICE) return;
+  const here = c.currentLocaleId
+    ? await prisma.locale.findUnique({ where: { id: c.currentLocaleId } })
+    : null;
+  if (!here || here.type !== LocaleType.HOTEL) return;
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: { money: { decrement: HOTEL_NIGHT_PRICE } },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -HOTEL_NIGHT_PRICE, type: TxnType.PURCHASE, memo: `Hotel: ${here.name}` },
+    }),
+  ]);
+  await applyDeltas(userId, { ENERGY: +45, MOOD: +10, HEALTH: +5 });
+  await setFlash("hotelRested");
+  revalidatePath(`/${locale}`, "layout");
+}
+
+/** Buy this week's lottery ticket (quick pick) in the current city. */
+export async function buyLotteryTicketAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.money < LOTTERY_TICKET_PRICE) return;
+
+  const week = gameWeekIndex(worldClock.toGameTime());
+  const already = await prisma.lotteryTicket.findUnique({
+    where: {
+      characterId_cityId_weekIndex: {
+        characterId: c.id,
+        cityId: c.currentCityId,
+        weekIndex: week,
+      },
+    },
+  });
+  if (already) return;
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: { money: { decrement: LOTTERY_TICKET_PRICE } },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -LOTTERY_TICKET_PRICE, type: TxnType.PURCHASE, memo: "Lottery ticket" },
+    }),
+    prisma.lotteryTicket.create({
+      data: {
+        characterId: c.id,
+        cityId: c.currentCityId,
+        weekIndex: week,
+        numbers: lotteryDraw().join(","),
+      },
+    }),
+  ]);
+  await setFlash("ticketBought");
+  revalidatePath(`/${locale}/city`);
+}
+
+const mayorNoteSchema = z.object({
+  note: z.string().max(600),
+  locale: z.string().default("en"),
+});
+
+/** Mayor updates the public message on the city page. */
+export async function setMayorNoteAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = mayorNoteSchema.safeParse({
+    note: formData.get("note") ?? "",
+    locale: formData.get("locale") ?? "en",
+  });
+  if (!parsed.success) return;
+  const c = await loadLivingCharacter(userId);
+  const city = await prisma.city.findUnique({ where: { id: c.currentCityId } });
+  if (!city || city.mayorId !== c.id) return;
+  await prisma.city.update({
+    where: { id: city.id },
+    data: { mayorNote: parsed.data.note.trim() || null },
+  });
+  await setFlash("mayorNoteSaved");
+  revalidatePath(`/${parsed.data.locale}/city`);
+  revalidatePath(`/${parsed.data.locale}/politics`);
 }
 
 const bankSchema = z.object({
