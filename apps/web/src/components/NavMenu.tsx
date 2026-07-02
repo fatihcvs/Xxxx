@@ -21,6 +21,8 @@ const GROUPS: { title: string; items: { href: string; key: string }[] }[] = [
       { href: "/career", key: "career" },
       { href: "/band", key: "band" },
       { href: "/charts", key: "charts" },
+      { href: "/press", key: "press" },
+      { href: "/awards", key: "awards" },
     ],
   },
   {

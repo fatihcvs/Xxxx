@@ -9,3 +9,6 @@ export * from "./music";
 export * from "./releaseSales";
 export * from "./aging";
 export * from "./business";
+export * from "./media";
+export * from "./awards";
+export * from "./achievements";

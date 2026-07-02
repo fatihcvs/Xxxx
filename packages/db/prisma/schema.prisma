@@ -66,6 +66,7 @@ model City {
   businesses   Business[]
   elections    Election[]
   fanBases     FanBase[]
+  newsArticles NewsArticle[]
 
   @@unique([name, countryId])
 }
@@ -136,6 +137,10 @@ model Character {
   hospitalizedAt DateTime?
   // In-game time of the last aging/death roll (drives the aging sweep).
   lastAgedGameAt DateTime?
+  // In-game time of the last press interview (one per game week).
+  lastInterviewGameAt DateTime?
+  // In-game time of the last weekly gossip roll (drives the gossip sweep).
+  lastGossipGameAt DateTime?
 
   // Family / heir line.
   parentId String?
@@ -168,6 +173,11 @@ model Character {
   candidacies Candidacy[]
   votes       Vote[]
   stageRoles  CharacterStageRole[]
+
+  prAgent      PrAgent?
+  newsArticles NewsArticle[]
+  awards       Award[]               @relation("CharacterAwards")
+  achievements CharacterAchievement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -390,6 +400,10 @@ model Band {
   releases Release[]
   fanBases FanBase[]
 
+  newsArticles NewsArticle[]
+  awards       Award[]
+  fanClub      FanClub?
+
   createdAt DateTime @default(now())
 }
 
@@ -453,6 +467,7 @@ model Release {
   videoQuality    Int         @default(0) // 0..100; boosts sales & fame
 
   tracks ReleaseTrack[]
+  awards Award[]
 
   @@index([active])
   @@index([chartScore])
@@ -623,4 +638,100 @@ model CharacterStageRole {
   slot        StageRoleSlot
 
   @@unique([characterId, slot])
+}
+
+// ---------------------------------------------------------------------------
+// Fame, media & achievements (Faz 10)
+// ---------------------------------------------------------------------------
+
+enum NewsKind {
+  INTERVIEW
+  GOSSIP
+  AWARD
+}
+
+// A press item in the in-game news feed (interviews, gossip, award coverage).
+model NewsArticle {
+  id              String     @id @default(cuid())
+  kind            NewsKind
+  headline        String
+  body            String?
+  cityId          String?
+  city            City?      @relation(fields: [cityId], references: [id])
+  bandId          String?
+  band            Band?      @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  characterId     String?
+  character       Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  publishedAtGame DateTime
+  createdAt       DateTime   @default(now())
+
+  @@index([publishedAtGame])
+  @@index([cityId])
+}
+
+// A hired PR manager: weekly fee, better interviews, shields against gossip.
+model PrAgent {
+  id             String    @id @default(cuid())
+  characterId    String    @unique
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  weeklyFee      Int       @default(300)
+  hiredAt        DateTime  @default(now())
+  lastPaidGameAt DateTime
+  active         Boolean   @default(true)
+
+  @@index([active])
+}
+
+// Annual music awards, held once per in-game year.
+model AwardShow {
+  id         String   @id @default(cuid())
+  gameYear   Int      @unique
+  heldAtGame DateTime
+  awards     Award[]
+}
+
+model Award {
+  id            String     @id @default(cuid())
+  awardShowId   String
+  show          AwardShow  @relation(fields: [awardShowId], references: [id], onDelete: Cascade)
+  category      String // matches game-engine AwardCategory
+  bandId        String?
+  band          Band?      @relation(fields: [bandId], references: [id])
+  characterId   String?
+  character     Character? @relation("CharacterAwards", fields: [characterId], references: [id])
+  releaseId     String?
+  release       Release?   @relation(fields: [releaseId], references: [id])
+  recipientName String
+
+  @@unique([awardShowId, category])
+}
+
+// A band's fan club: members grow weekly with fame and lift the band's reach.
+model FanClub {
+  id               String   @id @default(cuid())
+  bandId           String   @unique
+  band             Band     @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  members          Int      @default(0)
+  foundedAt        DateTime @default(now())
+  lastGrowthGameAt DateTime
+}
+
+// Achievement catalogue row (codes/categories come from the game engine).
+model Achievement {
+  id       String @id @default(cuid())
+  code     String @unique // matches game-engine AchievementCode
+  category String
+
+  earnedBy CharacterAchievement[]
+}
+
+model CharacterAchievement {
+  id            String      @id @default(cuid())
+  characterId   String
+  character     Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime    @default(now())
+
+  @@unique([characterId, achievementId])
 }

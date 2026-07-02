@@ -1,4 +1,4 @@
-import { prisma, MeterKind, TxnType, LearningState, ReleaseType, PropertyKind } from "@fameworld/db";
+import { prisma, MeterKind, TxnType, LearningState, ReleaseType, PropertyKind, NewsKind } from "@fameworld/db";
 import {
   needsHospital,
   worldClockFromEnv,
@@ -15,6 +15,18 @@ import {
   STALE_FAME_DECAY_PER_WEEK,
   PAYDAY_XP,
   STUDY_XP,
+  gossipHits,
+  pickHeadline,
+  GOSSIP_HEADLINES,
+  GOSSIP_MIN_STAR,
+  GOSSIP_STAR_LOSS,
+  fanClubWeeklyGrowth,
+  AWARD_CATEGORIES,
+  AWARD_BAND_FAME_BONUS,
+  AWARD_STAR_BONUS,
+  ACHIEVEMENTS,
+  earnedAchievements,
+  type AchievementStats,
   type MeterState,
 } from "@fameworld/game-engine";
 
@@ -45,6 +57,11 @@ export interface HeartbeatResult {
   electionsResolved: number;
   electionsOpened: number;
   fameDecayed: number;
+  prFeesCharged: number;
+  gossipStories: number;
+  fanClubsGrown: number;
+  awardShowsHeld: number;
+  achievementsEarned: number;
 }
 
 /** Admit/discharge characters based on Mood/Health thresholds. */
@@ -434,12 +451,290 @@ async function sweepBandFame(nowGame: Date): Promise<number> {
   return decayed;
 }
 
+/** Charge the weekly PR-agent fee; an agent who cannot be paid walks out. */
+async function sweepPrAgents(nowGame: Date): Promise<number> {
+  const agents = await prisma.prAgent.findMany({
+    where: { active: true },
+    include: { character: true },
+  });
+  let charged = 0;
+  for (const agent of agents) {
+    const weeks = gameWeeksBetween(agent.lastPaidGameAt, nowGame);
+    if (weeks <= 0) continue;
+    const due = agent.weeklyFee * weeks;
+    if (agent.character.money < due || !agent.character.isAlive) {
+      await prisma.prAgent.update({ where: { id: agent.id }, data: { active: false } });
+      continue;
+    }
+    await prisma.$transaction([
+      prisma.character.update({
+        where: { id: agent.characterId },
+        data: { money: { decrement: due } },
+      }),
+      prisma.transaction.create({
+        data: { characterId: agent.characterId, amount: -due, type: TxnType.OTHER, memo: "PR agent fee" },
+      }),
+      prisma.prAgent.update({ where: { id: agent.id }, data: { lastPaidGameAt: nowGame } }),
+    ]);
+    charged += 1;
+  }
+  return charged;
+}
+
+/**
+ * Weekly gossip roll for famous characters: a tabloid story costs star value.
+ * A PR agent and Media Manipulation skill shield against it.
+ */
+async function sweepGossip(nowGame: Date): Promise<number> {
+  const stars = await prisma.character.findMany({
+    where: { isAlive: true, userId: { not: null }, starValue: { gte: GOSSIP_MIN_STAR } },
+    include: { prAgent: true, currentCity: true },
+  });
+  const mediaSkill = await prisma.skill.findUnique({ where: { name: "Basic Media Manipulation" } });
+  let stories = 0;
+  for (const c of stars) {
+    if (!c.lastGossipGameAt) {
+      await prisma.character.update({ where: { id: c.id }, data: { lastGossipGameAt: nowGame } });
+      continue;
+    }
+    const weeks = gameWeeksBetween(c.lastGossipGameAt, nowGame);
+    if (weeks <= 0) continue;
+
+    const skillLevel = mediaSkill
+      ? (
+          await prisma.characterSkill.findUnique({
+            where: { characterId_skillId: { characterId: c.id, skillId: mediaSkill.id } },
+          })
+        )?.level ?? 0
+      : 0;
+    const hasAgent = !!c.prAgent?.active;
+
+    let hits = 0;
+    for (let w = 0; w < weeks; w++) {
+      if (gossipHits(c.starValue, hasAgent, skillLevel)) hits += 1;
+    }
+    if (hits > 0) {
+      const name = `${c.firstName} ${c.lastName}`;
+      await prisma.$transaction([
+        prisma.character.update({
+          where: { id: c.id },
+          data: {
+            starValue: Math.max(0, c.starValue - GOSSIP_STAR_LOSS * hits),
+            lastGossipGameAt: nowGame,
+          },
+        }),
+        prisma.newsArticle.create({
+          data: {
+            kind: NewsKind.GOSSIP,
+            headline: pickHeadline(GOSSIP_HEADLINES, name),
+            characterId: c.id,
+            cityId: c.currentCityId,
+            publishedAtGame: nowGame,
+          },
+        }),
+      ]);
+      stories += hits;
+    } else {
+      await prisma.character.update({ where: { id: c.id }, data: { lastGossipGameAt: nowGame } });
+    }
+  }
+  return stories;
+}
+
+/** Grow fan-club membership weekly with the band's fame. */
+async function sweepFanClubs(nowGame: Date): Promise<number> {
+  const clubs = await prisma.fanClub.findMany({ include: { band: true } });
+  let grown = 0;
+  for (const club of clubs) {
+    const weeks = gameWeeksBetween(club.lastGrowthGameAt, nowGame);
+    if (weeks <= 0) continue;
+    let members = club.members;
+    for (let w = 0; w < weeks; w++) {
+      members += fanClubWeeklyGrowth(club.band.fame, members);
+    }
+    await prisma.fanClub.update({
+      where: { id: club.id },
+      data: { members, lastGrowthGameAt: nowGame },
+    });
+    if (members > club.members) grown += 1;
+  }
+  return grown;
+}
+
+/**
+ * Hold the annual award show once per completed in-game year: crown the top
+ * band (fame), release (sales that year) and artist (star value), pay fame and
+ * star bonuses, and publish the coverage.
+ */
+async function sweepAwardShow(nowGame: Date): Promise<number> {
+  const prevYear = nowGame.getUTCFullYear() - 1;
+  const already = await prisma.awardShow.findUnique({ where: { gameYear: prevYear } });
+  if (already) return 0;
+
+  const [topBand, releases, topArtist] = await Promise.all([
+    prisma.band.findFirst({ where: { fame: { gt: 0 } }, orderBy: { fame: "desc" } }),
+    prisma.release.findMany({
+      where: { totalSales: { gt: 0 } },
+      orderBy: { totalSales: "desc" },
+      include: { band: true },
+      take: 50,
+    }),
+    prisma.character.findFirst({
+      where: { isAlive: true, starValue: { gt: 0 } },
+      orderBy: { starValue: "desc" },
+    }),
+  ]);
+  const topRelease = releases.find(
+    (r) => clock.toGameTime(r.releasedAt).getUTCFullYear() === prevYear,
+  );
+
+  await prisma.$transaction(async (tx) => {
+    const show = await tx.awardShow.create({
+      data: { gameYear: prevYear, heldAtGame: nowGame },
+    });
+    const publish = (headline: string, extra: { bandId?: string; characterId?: string }) =>
+      tx.newsArticle.create({
+        data: { kind: NewsKind.AWARD, headline, publishedAtGame: nowGame, ...extra },
+      });
+
+    if (topBand) {
+      await tx.award.create({
+        data: {
+          awardShowId: show.id,
+          category: AWARD_CATEGORIES[0],
+          bandId: topBand.id,
+          recipientName: topBand.name,
+        },
+      });
+      await tx.band.update({
+        where: { id: topBand.id },
+        data: { fame: Math.min(100, topBand.fame + AWARD_BAND_FAME_BONUS) },
+      });
+      await publish(`${topBand.name} named Band of the Year ${prevYear}`, { bandId: topBand.id });
+    }
+    if (topRelease) {
+      await tx.award.create({
+        data: {
+          awardShowId: show.id,
+          category: AWARD_CATEGORIES[1],
+          bandId: topRelease.bandId,
+          releaseId: topRelease.id,
+          recipientName: `${topRelease.title} — ${topRelease.band.name}`,
+        },
+      });
+      await tx.band.update({
+        where: { id: topRelease.bandId },
+        data: { fame: { increment: AWARD_BAND_FAME_BONUS / 2 } },
+      });
+      await publish(
+        `${topRelease.title} wins Release of the Year ${prevYear}`,
+        { bandId: topRelease.bandId },
+      );
+    }
+    if (topArtist) {
+      await tx.award.create({
+        data: {
+          awardShowId: show.id,
+          category: AWARD_CATEGORIES[2],
+          characterId: topArtist.id,
+          recipientName: `${topArtist.firstName} ${topArtist.lastName}`,
+        },
+      });
+      await tx.character.update({
+        where: { id: topArtist.id },
+        data: { starValue: { increment: AWARD_STAR_BONUS } },
+      });
+      await publish(
+        `${topArtist.firstName} ${topArtist.lastName} crowned Artist of the Year ${prevYear}`,
+        { characterId: topArtist.id },
+      );
+    }
+  });
+  return 1;
+}
+
+/** Evaluate the achievement catalogue for player characters and grant new trophies. */
+async function sweepAchievements(): Promise<number> {
+  // Ensure the catalogue rows exist (codes come from the engine).
+  const achievementIdByCode = new Map<string, string>();
+  for (const a of ACHIEVEMENTS) {
+    const rec = await prisma.achievement.upsert({
+      where: { code: a.code },
+      update: { category: a.category },
+      create: { code: a.code, category: a.category },
+    });
+    achievementIdByCode.set(a.code, rec.id);
+  }
+
+  const players = await prisma.character.findMany({
+    where: { isAlive: true, userId: { not: null } },
+    include: {
+      memberships: {
+        include: {
+          band: {
+            include: {
+              _count: { select: { songs: true, releases: true } },
+              releases: { select: { totalSales: true } },
+              fanBases: { select: { fans: true } },
+              awards: { select: { id: true } },
+            },
+          },
+        },
+      },
+      skills: { select: { level: true } },
+      awards: { select: { id: true } },
+      mayoralCities: { select: { id: true } },
+      _count: { select: { children: true, properties: true, businesses: true } },
+      achievements: { select: { achievementId: true } },
+    },
+  });
+
+  let earnedCount = 0;
+  for (const c of players) {
+    const bands = c.memberships.map((m) => m.band);
+    const concerts = await prisma.concert.count({
+      where: { played: true, bandId: { in: bands.map((b) => b.id) } },
+    });
+    const stats: AchievementStats = {
+      songs: bands.reduce((s, b) => s + b._count.songs, 0),
+      concerts,
+      releases: bands.reduce((s, b) => s + b._count.releases, 0),
+      totalSales: bands.reduce(
+        (s, b) => s + b.releases.reduce((x, r) => x + r.totalSales, 0),
+        0,
+      ),
+      bandFans: bands.reduce((s, b) => s + b.fanBases.reduce((x, f) => x + f.fans, 0), 0),
+      bandFame: bands.reduce((s, b) => Math.max(s, b.fame), 0),
+      starValue: c.starValue,
+      awards: c.awards.length + bands.reduce((s, b) => s + b.awards.length, 0),
+      money: c.money,
+      properties: c._count.properties,
+      businesses: c._count.businesses,
+      isMayor: c.mayoralCities.length > 0,
+      maxSkillLevel: c.skills.reduce((s, k) => Math.max(s, k.level), 0),
+      children: c._count.children,
+    };
+
+    const have = new Set(c.achievements.map((a) => a.achievementId));
+    for (const code of earnedAchievements(stats)) {
+      const achievementId = achievementIdByCode.get(code)!;
+      if (have.has(achievementId)) continue;
+      await prisma.characterAchievement.create({
+        data: { characterId: c.id, achievementId },
+      });
+      earnedCount += 1;
+    }
+  }
+  return earnedCount;
+}
+
 /**
  * Global sweep over the living world. Meters derive from anchors on read, so
  * the heartbeat flips hospitalisation, completes timed learning, pays weekly
  * salaries on in-game Fridays, charges apartment rent, accrues record sales,
  * ages characters (death → heir), pays rental/business income, runs elections
- * and decays the fame of bands that stop releasing.
+ * and decays the fame of bands that stop releasing. Faz 10 adds PR fees,
+ * gossip, fan-club growth, the annual award show and achievement grants.
  */
 export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatResult> {
   const nowGame = clock.toGameTime(now);
@@ -453,8 +748,18 @@ export async function runHeartbeat(now: Date = new Date()): Promise<HeartbeatRes
   const businessProfits = await sweepBusinesses(nowGame);
   const elections = await sweepElections(nowGame);
   const fameDecayed = await sweepBandFame(nowGame);
+  const prFeesCharged = await sweepPrAgents(nowGame);
+  const gossipStories = await sweepGossip(nowGame);
+  const fanClubsGrown = await sweepFanClubs(nowGame);
+  const awardShowsHeld = await sweepAwardShow(nowGame);
+  const achievementsEarned = await sweepAchievements();
   return {
     fameDecayed,
+    prFeesCharged,
+    gossipStories,
+    fanClubsGrown,
+    awardShowsHeld,
+    achievementsEarned,
     scanned: hospital.scanned,
     hospitalized: hospital.hospitalized,
     discharged: hospital.discharged,

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind, StageRoleSlot } from "@fameworld/db";
+import { prisma, Gender, MeterKind, TxnType, LearningState, LocaleType, ReleaseType, RelationType, PropertyKind, StageRoleSlot, NewsKind } from "@fameworld/db";
 import {
   ATTRIBUTES,
   DEFAULT_METER_RATES,
@@ -27,6 +27,13 @@ import {
   inheritedAttributeLevel,
   vipLearningMultiplier,
   MAX_TAX_RATE,
+  interviewOutcome,
+  INTERVIEW_COOLDOWN_GAME_DAYS,
+  INTERVIEW_HEADLINES,
+  pickHeadline,
+  PR_AGENT_WEEKLY_FEE,
+  FAN_CLUB_FOUNDING_FEE,
+  fanClubReachBoost,
   type MeterState,
 } from "@fameworld/game-engine";
 import { worldClock } from "@/lib/world";
@@ -559,16 +566,19 @@ export async function performConcertAction(formData: FormData): Promise<void> {
     roleFactor,
   );
 
-  // Local fans boost the effective audience reach.
-  const fanBase = await prisma.fanBase.findUnique({
-    where: { bandId_cityId: { bandId: band.id, cityId: city.id } },
-  });
+  // Local fans (and the fan club, if founded) boost the effective audience reach.
+  const [fanBase, fanClub] = await Promise.all([
+    prisma.fanBase.findUnique({
+      where: { bandId_cityId: { bandId: band.id, cityId: city.id } },
+    }),
+    prisma.fanClub.findUnique({ where: { bandId: band.id } }),
+  ]);
   const localFans = fanBase?.fans ?? 0;
 
   const outcome = runConcert({
     fame: band.fame,
     venueCapacity: venue.capacity,
-    cityReach: city.reach + localFans * 3,
+    cityReach: city.reach + localFans * 3 + fanClubReachBoost(fanClub?.members ?? 0),
     ticketPrice,
     performanceQuality: quality,
   });
@@ -1142,5 +1152,140 @@ export async function learnFromMasterAction(formData: FormData): Promise<void> {
     },
   });
   revalidatePath(`/${locale}/skills`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Fame, media & achievements (Faz 10)
+// ---------------------------------------------------------------------------
+
+const MS_PER_GAME_DAY = 24 * 3_600_000;
+
+/**
+ * Give a press interview (one per in-game week): raises star value and, if the
+ * character is in a band, the band's fame. Media Manipulation skill and an
+ * active PR agent improve the outcome; the story lands in the news feed.
+ */
+export async function giveInterviewAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.hospitalizedAt) return;
+
+  const nowGame = worldClock.toGameTime();
+  if (
+    c.lastInterviewGameAt &&
+    nowGame.getTime() - c.lastInterviewGameAt.getTime() <
+      INTERVIEW_COOLDOWN_GAME_DAYS * MS_PER_GAME_DAY
+  ) {
+    return;
+  }
+
+  const [mediaSkill, agent, membership] = await Promise.all([
+    skillLevelByName(c.id, "Basic Media Manipulation"),
+    prisma.prAgent.findUnique({ where: { characterId: c.id } }),
+    activeBandMembership(c.id),
+  ]);
+
+  const outcome = interviewOutcome({ mediaSkill, hasPrAgent: !!agent?.active });
+  const name = `${c.firstName} ${c.lastName}`;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.character.update({
+      where: { id: c.id },
+      data: { starValue: { increment: outcome.starGain }, lastInterviewGameAt: nowGame },
+    });
+    if (membership) {
+      await tx.band.update({
+        where: { id: membership.bandId },
+        data: { fame: Math.min(100, membership.band.fame + outcome.fameGain) },
+      });
+    }
+    await tx.newsArticle.create({
+      data: {
+        kind: NewsKind.INTERVIEW,
+        headline: pickHeadline(INTERVIEW_HEADLINES, membership ? membership.band.name : name),
+        characterId: c.id,
+        bandId: membership?.bandId,
+        cityId: c.currentCityId,
+        publishedAtGame: nowGame,
+      },
+    });
+    await tx.characterMeter.update({
+      where: { characterId_kind: { characterId: c.id, kind: MeterKind.ENERGY } },
+      data: { value: { decrement: 6 }, anchorAt: new Date() },
+    });
+  });
+  revalidatePath(`/${locale}/press`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+/** Hire a PR agent: first weekly fee is paid up front, then charged weekly. */
+export async function hirePrAgentAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  if (c.money < PR_AGENT_WEEKLY_FEE) return;
+
+  const existing = await prisma.prAgent.findUnique({ where: { characterId: c.id } });
+  if (existing?.active) return;
+
+  const nowGame = worldClock.toGameTime();
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: { money: { decrement: PR_AGENT_WEEKLY_FEE } },
+    }),
+    prisma.transaction.create({
+      data: { characterId: c.id, amount: -PR_AGENT_WEEKLY_FEE, type: TxnType.OTHER, memo: "PR agent fee" },
+    }),
+    prisma.prAgent.upsert({
+      where: { characterId: c.id },
+      update: { active: true, lastPaidGameAt: nowGame, weeklyFee: PR_AGENT_WEEKLY_FEE },
+      create: { characterId: c.id, weeklyFee: PR_AGENT_WEEKLY_FEE, lastPaidGameAt: nowGame },
+    }),
+  ]);
+  revalidatePath(`/${locale}/press`);
+  revalidatePath(`/${locale}`, "layout");
+}
+
+/** Let the PR agent go (stops the weekly fee and the gossip shield). */
+export async function firePrAgentAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  await prisma.prAgent.updateMany({
+    where: { characterId: c.id, active: true },
+    data: { active: false },
+  });
+  revalidatePath(`/${locale}/press`);
+}
+
+/** Found the band's fan club (leader only): members grow weekly with fame. */
+export async function foundFanClubAction(locale: string): Promise<void> {
+  const userId = await requireUserId();
+  const c = await loadLivingCharacter(userId);
+  const membership = await activeBandMembership(c.id);
+  if (!membership || !membership.isLeader) return;
+  if (c.money < FAN_CLUB_FOUNDING_FEE) return;
+
+  const existing = await prisma.fanClub.findUnique({ where: { bandId: membership.bandId } });
+  if (existing) return;
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: c.id },
+      data: { money: { decrement: FAN_CLUB_FOUNDING_FEE } },
+    }),
+    prisma.transaction.create({
+      data: {
+        characterId: c.id,
+        amount: -FAN_CLUB_FOUNDING_FEE,
+        type: TxnType.PURCHASE,
+        memo: `Fan club: ${membership.band.name}`,
+      },
+    }),
+    prisma.fanClub.create({
+      data: { bandId: membership.bandId, lastGrowthGameAt: worldClock.toGameTime() },
+    }),
+  ]);
+  revalidatePath(`/${locale}/press`);
   revalidatePath(`/${locale}`, "layout");
 }
