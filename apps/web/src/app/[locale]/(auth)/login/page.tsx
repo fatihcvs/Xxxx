@@ -40,7 +40,12 @@ export default async function LoginPage({
           marginBottom: "10px",
           position: "relative",
           overflow: "hidden",
-          background: "linear-gradient(120deg, #24507f, #4a80c4 55%, #7a4a99)",
+          background:
+            "linear-gradient(120deg, #24507f, #4a80c4 55%, #7a4a99)",
+          backgroundImage:
+            "linear-gradient(rgba(20,30,50,0.15), rgba(20,30,50,0.35)), url(/hero.png)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
         <div style={{ position: "absolute", left: "22px", top: "50%", transform: "translateY(-50%)", color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.7)" }}>
