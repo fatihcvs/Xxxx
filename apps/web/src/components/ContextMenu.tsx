@@ -131,27 +131,33 @@ export function ContextMenu() {
   const t = useTranslations("ctx");
   const pathname = usePathname();
   const groups = menuFor(pathname);
+  // The first group's title names the whole section (panel header); the rest
+  // become bold sub-headers inside the body — matching the classic layout.
+  const sectionTitle = groups[0]?.title ?? "gCharacter";
 
   return (
-    <div className="ctxmenu">
-      {groups.map((g) => (
-        <div key={g.title}>
-          <h3>{t(g.title)}</h3>
-          <ul>
-            {g.items.map((item) => (
-              <li key={item.href + item.key}>
-                <Link
-                  href={item.href}
-                  className={pathname.startsWith(item.href) ? "active" : ""}
-                >
-                  {t(item.key)}
-                  {item.vip ? " ★" : ""}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+    <div className="panel">
+      <div className="panel-header">{t(sectionTitle)}</div>
+      <div className="panel-body ctxmenu" style={{ padding: "8px 10px 10px" }}>
+        {groups.map((g, gi) => (
+          <div key={g.title}>
+            {gi > 0 && <h3>{t(g.title)}</h3>}
+            <ul>
+              {g.items.map((item) => (
+                <li key={item.href + item.key}>
+                  <Link
+                    href={item.href}
+                    className={pathname.startsWith(item.href) ? "active" : ""}
+                  >
+                    {t(item.key)}
+                    {item.vip ? " ★" : ""}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

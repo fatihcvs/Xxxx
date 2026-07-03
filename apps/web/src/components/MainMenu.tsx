@@ -64,15 +64,20 @@ export function MainMenu() {
 
   return (
     <nav className="mainmenu" aria-label="main">
-      {ITEMS.map((item) => (
-        <Link
-          key={item.key}
-          href={item.href}
-          className={`menu-link ${activeKey === item.key ? "active" : ""}`}
-        >
-          {t(item.key)}
-        </Link>
-      ))}
+      <span className="diamond" aria-hidden>
+        ◆
+      </span>
+      <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+        {ITEMS.map((item) => (
+          <Link
+            key={item.key}
+            href={item.href}
+            className={`menu-link ${activeKey === item.key ? "active" : ""}`}
+          >
+            {t(item.key)}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }

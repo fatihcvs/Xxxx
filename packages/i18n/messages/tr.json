@@ -453,7 +453,16 @@
     "health": "Sağlık",
     "energy": "Enerji",
     "cash": "Nakit",
-    "star": "Yıldız değeri"
+    "star": "Yıldız değeri",
+    "focuses": "Odaklar",
+    "settings": "Ayarlar",
+    "gameLbl": "Oyun",
+    "points": "Puan",
+    "activeDays": "Aktif Günler",
+    "daysWord": "gün",
+    "statusLbl": "Durumu",
+    "statusNormal": "Normal",
+    "statusHospital": "Hastane bakımında"
   },
   "ctx": {
     "gCharacter": "Karakter",
@@ -797,5 +806,35 @@
     "colDistrict": "Bölge",
     "walk": "Yürü",
     "youAreHere": "buradasın"
+  },
+  "landing": {
+    "heroTitle": "Sahne senin.",
+    "heroSub": "Gerçek zamanlı bir müzik dünyasında bir isim ol.",
+    "welcomeH1": "Fameworld Dünyasına Hoş Geldin",
+    "intro1": "Fameworld, oyuncuların sanal bir müzik endüstrisinde şöhret için yarıştığı, gerçek zamanlı bir çevrim içi yaşam simülasyonudur.",
+    "intro2": "Oyuna elinde yalnızca hayalleri olan sıradan biri olarak başlarsın. Birkaç şarkı yaz, prova yap, küçük mekânlarda çal ve hayran kitleni kur. Doğru adımları atarsan kısa sürede turnelere çıkarsın.",
+    "intro3": "Oyun gerçek zamanlı işler ve sen yokken de devam eder. Başarı sürekli çevrim içi olmana değil, iyi stratejiye ve zamanlamaya bağlıdır.",
+    "signupH": "Eğlenceye katılmak için kaydol",
+    "signupDesc": "Hesabını oluştur, seni sahneye çıkaralım.",
+    "quickH": "Zaten hesabın var mı?",
+    "quickDesc": "Giriş yap ve kaldığın yerden devam et.",
+    "newsH": "En Son Camia Haberleri",
+    "n1t": "Ufukta bir festival",
+    "n1d": "12.05.2026",
+    "n1b": "Bu sezon sahneler hızla doluyor. Türün ne olursa olsun sana yer var. Tarihler için şehir sayfalarını izle.",
+    "n2t": "Sahada adil oyna",
+    "n2d": "04.05.2026",
+    "n2b": "Dünya istikrarlı emeği ve akıllı zamanlamayı ödüllendirir. Gel, prova yap, hayran kitleni büyüt.",
+    "n3t": "Her efsane küçük başlar",
+    "n3d": "16.12.2025",
+    "n3b": "Listelerin en büyük isimleri boş bir odadaki tek bir konserle başladı. Seninki de seni bekliyor.",
+    "statsH": "Sayılarla",
+    "stat1": "Müzisyenler, mekânlar ve hayranlardan oluşan yaşayan bir dünya.",
+    "stat2": "Her hafta listelerde yeni yıldızlar yükseliyor.",
+    "langH": "Dil seçimi",
+    "ageH": "Müzik, sahne ve gece hayatı",
+    "ageDesc": "Yetişkin temaları ve derinliği nedeniyle Fameworld en çok 18 yaş üzeri oyuncularla keyifli.",
+    "about": "Fameworld Hakkında",
+    "contact": "İletişim"
   }
 }

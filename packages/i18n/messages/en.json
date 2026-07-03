@@ -453,7 +453,16 @@
     "health": "Health",
     "energy": "Energy",
     "cash": "Cash",
-    "star": "Star value"
+    "star": "Star value",
+    "focuses": "Focuses",
+    "settings": "Settings",
+    "gameLbl": "Game",
+    "points": "Points",
+    "activeDays": "Active Days",
+    "daysWord": "days",
+    "statusLbl": "Status",
+    "statusNormal": "Normal",
+    "statusHospital": "In hospital care"
   },
   "ctx": {
     "gCharacter": "Character",
@@ -797,5 +806,35 @@
     "colDistrict": "District",
     "walk": "Walk over",
     "youAreHere": "you are here"
+  },
+  "landing": {
+    "heroTitle": "The stage is yours.",
+    "heroSub": "Make a name in a real-time music world.",
+    "welcomeH1": "Welcome to the World of Fameworld",
+    "intro1": "Fameworld is a real-time online life simulation where players compete for fame in a virtual music industry.",
+    "intro2": "You start as an ordinary person with nothing but dreams. Write a few songs, rehearse, play small venues and build your fan base. Play your cards right and you will soon be touring the world.",
+    "intro3": "The game runs in real time and keeps going while you are away. Success depends on good strategy and timing, not on being online all the time.",
+    "signupH": "Sign up to join the fun",
+    "signupDesc": "Create your account and we will get you onto the stage.",
+    "quickH": "Already have an account?",
+    "quickDesc": "Sign in and pick up right where you left off.",
+    "newsH": "Latest Community News",
+    "n1t": "A festival on the horizon",
+    "n1d": "12.05.2026",
+    "n1b": "This season the stages fill up fast. Whatever your genre, there is room for you. Watch the city pages for dates.",
+    "n2t": "Play fair out there",
+    "n2d": "04.05.2026",
+    "n2b": "The world rewards steady effort and smart timing. Show up, rehearse, and let your fan base grow.",
+    "n3t": "Every legend starts small",
+    "n3d": "16.12.2025",
+    "n3b": "The biggest names on the charts all began with a single gig in an empty room. Yours is waiting.",
+    "statsH": "By the numbers",
+    "stat1": "A living world of musicians, venues and fans.",
+    "stat2": "New stars rise on the charts every week.",
+    "langH": "Language",
+    "ageH": "Music, stage and nightlife",
+    "ageDesc": "Given its mature themes and depth, Fameworld is best enjoyed by players aged 18 and over.",
+    "about": "About Fameworld",
+    "contact": "Contact"
   }
 }

@@ -6,16 +6,16 @@ export default {
     extend: {
       colors: {
         panel: "#ffffff",
-        ink: "#111111",
+        ink: "#1e2429",
         // Classic link blue (brand doubles as the link/action colour).
         brand: "#09639a",
         brandDark: "#0078a3",
-        soft: "#eeeeee", // light grey used for header bands and boxes
+        soft: "#eef1f3", // glossy header light stop
         accent: "#ffcc00", // selection / highlight
-        alert: "#f58400", // warnings / attention
+        alert: "#cc2200", // warnings / attention
       },
       fontFamily: {
-        game: ['"Lucida Grande"', '"Lucida Sans Unicode"', "Verdana", "sans-serif"],
+        game: ["Verdana", '"Lucida Grande"', '"Lucida Sans Unicode"', "sans-serif"],
       },
     },
   },

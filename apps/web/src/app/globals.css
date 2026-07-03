@@ -7,117 +7,253 @@
 }
 
 /*
- * Classic game look: fixed-width centred page, dense 12px type on white,
- * grey section bands, blue links. All styling original.
+ * Classic glossy game skin. Original styling; the visual language (skeuomorphic
+ * gradient panels, dense 11px Verdana, dark backdrop) recreates the handoff
+ * design. Centred fixed-width shell over a dark page.
  */
 body {
-  @apply bg-white text-ink font-game;
-  font-size: 12px;
+  @apply text-ink;
+  background: #3c3c3c;
+  font-family: Verdana, "Lucida Grande", "Lucida Sans Unicode", sans-serif;
+  font-size: 11px;
   line-height: 1.5;
 }
 
-/* Content links are always the classic blue. */
-.game-content a:not(.btn):not(.btn-ghost):not(.menu-link) {
+/* Content links are the classic blue everywhere in the game content column. */
+.game-content a:not(.btn):not(.btn-ghost):not(.menu-link):not(.wordmark) {
   @apply text-brand;
 }
-.game-content a:not(.btn):not(.btn-ghost):not(.menu-link):hover {
-  @apply text-brandDark underline;
+.game-content a:not(.btn):not(.btn-ghost):not(.menu-link):not(.wordmark):hover {
+  text-decoration: underline;
 }
 
-/* Section panel: grey title band + plain body, boxes sit flush on white. */
+/* --- Boxed panel: white card, grey glossy title band --- */
 .panel {
-  @apply bg-panel mb-4;
+  background: #ffffff;
+  border: 1px solid #98a0a6;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
 }
 .panel-header {
-  @apply px-2 py-1 font-bold text-[12px] text-ink bg-soft border-b border-[#cccccc];
+  background: linear-gradient(#eef1f3, #b9c0c6);
+  border-bottom: 1px solid #98a0a6;
+  padding: 4px 9px;
+  font-weight: 700;
+  font-size: 11px;
+  color: #1e2429;
 }
 .panel-body {
-  @apply px-1 py-2;
+  padding: 9px;
 }
 
-/* Descriptive paragraph that follows every section title. */
+/* Descriptive paragraph that follows a section title. */
 .flavor {
-  @apply text-[11px] text-[#555555] mb-2;
+  line-height: 1.55;
+  color: #444444;
+  margin-bottom: 8px;
 }
 
-/* Dense data table. */
+/* --- Dense data table --- */
 table.data {
-  @apply w-full border-0 mb-4;
-  border-spacing: 0;
+  width: 100%;
+  border-collapse: collapse;
+  border: 0;
 }
 table.data th {
-  @apply bg-soft text-left px-2 py-1 font-bold text-[11px] border-b border-[#cccccc];
+  text-align: left;
+  padding: 3px 6px;
+  font-weight: 700;
+  color: #1e2429;
+  border-bottom: 1px solid #c3c9cd;
 }
 table.data td {
-  @apply px-2 py-1 align-top border-b border-[#eeeeee];
+  padding: 4px 6px;
+  vertical-align: top;
+  border-bottom: 1px solid #eef1f3;
 }
 table.data tr:hover td {
-  background: #ffffe4;
+  background: #fff7d6;
 }
 
-/* Number + adjective level label. */
+/* Value + adjective level label. */
 .lvl {
-  @apply whitespace-nowrap;
+  white-space: nowrap;
 }
 .lvl .adj {
-  @apply text-[#777777] italic ml-1;
+  color: #666666;
+  margin-left: 4px;
 }
 
 /* Visible entity id badge. */
 .idbadge {
-  @apply text-[10px] text-[#999999] font-normal align-middle ml-2;
+  font-size: 10px;
+  color: #999999;
+  font-weight: 400;
+  vertical-align: middle;
+  margin-left: 8px;
 }
 
-/* Buttons: compact classic form controls. */
+/* --- Buttons & form controls (classic glossy) --- */
 .btn {
-  @apply inline-flex items-center justify-center border border-[#888888] bg-soft px-2 py-0.5 text-[12px] text-ink hover:bg-[#e0e0e0] disabled:opacity-50 cursor-pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(#ffe27a, #e8b400);
+  border: 1px solid #b58f00;
+  border-radius: 3px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 700;
+  color: #1e2429;
+  cursor: pointer;
 }
+.btn:hover {
+  background: linear-gradient(#ffe98f, #f0bd00);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Neutral grey button. */
 .btn-ghost {
-  @apply inline-flex items-center justify-center border border-[#bbbbbb] bg-white px-2 py-0.5 text-[12px] text-brand hover:bg-soft cursor-pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(#ffffff, #d2d6d9);
+  border: 1px solid #8b9298;
+  border-radius: 3px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 700;
+  color: #1e2429;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background: linear-gradient(#ffffff, #c7ccd0);
+}
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Blue accent button. */
+.btn-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(#4a80c4, #2a5a99);
+  border: 1px solid #24507f;
+  border-radius: 3px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
 }
 .field {
-  @apply w-full border border-[#999999] bg-white px-1.5 py-0.5 text-[12px] outline-none focus:border-brand;
+  width: 100%;
+  border: 1px solid #8b9298;
+  border-radius: 2px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #ffffff;
+  outline: none;
+}
+.field:focus {
+  border-color: #4a80c4;
 }
 
-/* Meters keep a thin classic bar. */
+/* --- Meters: white well, green glossy fill --- */
 .meter {
-  @apply h-2 bg-[#dddddd] overflow-hidden;
+  display: inline-block;
+  height: 11px;
+  background: #ffffff;
+  border: 1px solid #8b9298;
+  overflow: hidden;
 }
 .meter > span {
-  @apply block h-full;
+  display: block;
+  height: 100%;
+  background: linear-gradient(#9ede52, #57a51f);
 }
 
-/* Main menu (9 sections). */
+/* --- Main menu: glossy bar, active tab inset --- */
 .mainmenu {
-  @apply flex flex-wrap items-center gap-x-1 border-b-2 border-[#cccccc] bg-white px-1;
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(#ffffff, #d2d6d9);
+  border: 1px solid #9aa2a8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.mainmenu .diamond {
+  padding: 4px 7px;
+  color: #8b9298;
+  border-right: 1px solid #c3c9cd;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
 }
 .menu-link {
-  @apply block px-2 py-1 text-[12px] font-bold text-brand hover:bg-soft hover:text-brandDark;
+  display: inline-block;
+  padding: 4px 9px;
+  font-size: 11px;
+  text-decoration: none;
+  color: #1e2429;
+  font-weight: 400;
+}
+.menu-link:hover {
+  background: linear-gradient(#f2f4f5, #dfe3e6);
 }
 .menu-link.active {
-  @apply text-ink bg-soft;
+  font-weight: 700;
+  background: linear-gradient(#b3bac0, #ccd1d5);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Right context menu: grouped link lists. */
+/* --- Right context menu: boxed, bold group headers --- */
 .ctxmenu h3 {
-  @apply bg-soft px-2 py-1 text-[11px] font-bold border-b border-[#cccccc] mt-3 first:mt-0;
+  font-weight: 700;
+  color: #1e2429;
+  font-size: 11px;
+  margin: 10px 0 3px;
+}
+.ctxmenu > div:first-child h3 {
+  margin-top: 0;
 }
 .ctxmenu ul {
-  @apply py-1;
+  display: grid;
+  gap: 3px;
+  line-height: 1.5;
+  margin-bottom: 2px;
 }
 .ctxmenu a {
-  @apply block px-2 py-0.5 text-[12px] text-brand hover:underline;
+  text-decoration: none;
+  color: #09639a;
+}
+.ctxmenu a:hover {
+  text-decoration: underline;
 }
 .ctxmenu a.active {
-  @apply text-ink font-bold no-underline;
+  font-weight: 700;
 }
 
-/* Feedback line at the top of every page. */
+/* --- Feedback line under the menu --- */
 .flashline {
-  @apply border border-[#e0d890] bg-[#ffffe4] px-2 py-1 text-[11px] text-[#444444] my-2;
+  text-align: center;
+  padding: 5px 8px;
+  margin-top: 6px;
+  background: #fff7d6;
+  border-radius: 3px;
+  color: #1e2429;
 }
 .flashline.empty {
-  @apply border-[#dddddd] bg-[#f7f7f7] text-[#888888];
+  background: rgba(255, 255, 255, 0.45);
+  color: #4a5157;
 }
 
 @media (prefers-reduced-motion: no-preference) {

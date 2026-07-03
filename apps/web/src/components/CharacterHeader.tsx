@@ -1,97 +1,126 @@
 import { getTranslations } from "next-intl/server";
+import { adjectiveIndex } from "@fameworld/game-engine";
 import { Link } from "@/i18n/routing";
 import type { CharacterView } from "@/lib/character";
 import { Avatar } from "./Avatar";
 
-function Gauge({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="min-w-[92px]">
-      <div className="flex justify-between text-[10px] text-[#666666]">
-        <span>{label}</span>
-        <span className="font-bold text-ink">{value}</span>
-      </div>
-      <div className="meter">
-        <span style={{ width: `${value}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
 /**
- * Character presentation block shown above the content column: portrait,
- * name + id, age/location sentences, the four gauges and quick links.
+ * Character presentation block: a portrait panel with the identity paragraph,
+ * followed by the three-column status list (quick links · meters · facts).
+ * Recreates the classic layout.
  */
 export async function CharacterHeader({ character }: { character: CharacterView }) {
-  const t = await getTranslations("charHeader");
+  const [t, tAdj] = await Promise.all([
+    getTranslations("charHeader"),
+    getTranslations("adjectives"),
+  ]);
+
+  const moodWord = tAdj(`a${adjectiveIndex(character.meters.mood)}`);
+  const healthWord = tAdj(`a${adjectiveIndex(character.meters.health)}`);
+  const money = character.money.toLocaleString("tr-TR", { minimumFractionDigits: 2 });
+
+  const meterRows = [
+    { icon: "☺", color: "#5a6167", pct: character.meters.mood },
+    { icon: "♥", color: "#b33", pct: character.meters.health },
+    { icon: "★", color: "#c9a400", pct: Math.min(100, Math.round(character.starValue * 3)) },
+  ];
 
   return (
-    <div className="mb-3 border border-[#cccccc] bg-white">
-      <div className="flex flex-wrap gap-3 p-2">
-        <Avatar firstName={character.firstName} lastName={character.lastName} size={56} />
-        <div className="min-w-[200px] flex-1">
-          <h1 className="text-[15px] font-bold leading-tight">
+    <>
+      {/* Portrait panel */}
+      <div className="panel">
+        <div className="panel-header" style={{ display: "flex", alignItems: "center" }}>
+          <span style={{ flex: 1 }}>
             {character.firstName} {character.lastName}
             <span className="idbadge">#{character.id.slice(-6).toUpperCase()}</span>
-            {character.vip && (
-              <span className="ml-2 align-middle text-[10px] font-bold text-alert">VIP ★</span>
-            )}
-          </h1>
-          <p className="text-[11px] text-[#444444]">
-            {t("age", { name: character.firstName, age: character.age })}
-          </p>
-          <p className="text-[11px] text-[#444444]">
-            {t.rich("location", {
-              name: character.firstName,
-              city: (chunk) => (
-                <Link href="/city" className="text-brand hover:underline">
-                  {character.currentCityName}
-                </Link>
-              ),
-              locale: (chunk) =>
-                character.currentLocaleName ? (
-                  <Link
-                    href={`/locale/${character.currentLocaleId}`}
-                    className="text-brand hover:underline"
-                  >
-                    {character.currentLocaleName}
-                  </Link>
-                ) : (
-                  <>{t("outside")}</>
-                ),
-            })}
-          </p>
-          {character.hospitalized && (
-            <p className="text-[11px] font-bold text-alert">{t("hospitalized")}</p>
-          )}
-          <p className="mt-1 text-[11px]">
-            <Link href="/skills" className="text-brand hover:underline">
-              {t("develop")}
-            </Link>
-            {" · "}
-            <Link href="/attributes" className="text-brand hover:underline">
-              {t("bodyHealth")}
-            </Link>
-            {" · "}
-            <Link href="/press" className="text-brand hover:underline">
-              {t("press")}
-            </Link>
-          </p>
+            {character.vip && <span style={{ marginLeft: 6, color: "#b58f00" }}>★ VIP</span>}
+          </span>
+          <span style={{ display: "flex", gap: 6, fontSize: 13 }}>
+            <Link href="/career" title={t("develop")} style={iconStyle}>▤</Link>
+            <Link href="/band" title="Artist" style={iconStyle}>◉</Link>
+            <Link href="/band" title="Songs" style={iconStyle}>♪</Link>
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Gauge label={t("mood")} value={character.meters.mood} color="#f0b400" />
-          <Gauge label={t("health")} value={character.meters.health} color="#c0392b" />
-          <Gauge label={t("energy")} value={character.meters.energy} color="#2e8b57" />
-          <div className="text-right">
-            <div className="text-[10px] text-[#666666]">{t("cash")}</div>
-            <div className="text-[13px] font-bold">
-              {character.money.toLocaleString()} <span className="text-[10px]">M$</span>
-            </div>
-            <div className="text-[10px] text-[#666666]">
-              {t("star")}: <b className="text-ink">{character.starValue.toFixed(1)}</b>
-            </div>
+        <div className="panel-body" style={{ display: "flex", gap: 12 }}>
+          <div style={{ width: 112, height: 148, flex: "none", border: "1px solid #8b9298", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "#eef1f3" }}>
+            <Avatar firstName={character.firstName} lastName={character.lastName} size={110} />
+          </div>
+          <div style={{ lineHeight: 1.6, color: "#222" }}>
+            <p style={{ margin: "0 0 12px" }}>
+              {t("age", { name: character.firstName, age: character.age })}{" "}
+              {t.rich("location", {
+                name: character.firstName,
+                city: () => (
+                  <Link href="/city" style={{ color: "#09639a" }}>
+                    {character.currentCityName}
+                  </Link>
+                ),
+                locale: () =>
+                  character.currentLocaleName ? (
+                    <Link href={`/locale/${character.currentLocaleId}`} style={{ color: "#09639a" }}>
+                      {character.currentLocaleName}
+                    </Link>
+                  ) : (
+                    <>{t("outside")}</>
+                  ),
+              })}
+            </p>
+            {character.hospitalized && (
+              <p style={{ margin: 0, color: "#cc2200", fontWeight: 700 }}>{t("hospitalized")}</p>
+            )}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Status list */}
+      <div style={{ display: "flex", gap: 10, padding: "2px 4px 10px" }}>
+        <div style={{ width: 170, display: "grid", gap: 5 }}>
+          <span>
+            <span style={{ color: "#5a6167", marginRight: 5 }}>☺</span>
+            <Link href="/attributes" style={{ color: "#09639a" }}>{moodWord}</Link>
+          </span>
+          <span>
+            <span style={{ color: "#b33", marginRight: 5 }}>♥</span>
+            <Link href="/attributes" style={{ color: "#09639a" }}>{healthWord}</Link>
+          </span>
+          <span>
+            <span style={{ color: "#5a6167", marginRight: 5 }}>✚</span>
+            <Link href="/develop" style={{ color: "#09639a" }}>{t("develop")}</Link>
+          </span>
+          <span>
+            <span style={{ color: "#5a6167", marginRight: 5 }}>◎</span>
+            <Link href="/focus" style={{ color: "#09639a" }}>{t("focuses")}</Link>
+          </span>
+          <span>
+            <span style={{ color: "#5a6167", marginRight: 5 }}>⚙</span>
+            <Link href="/player" style={{ color: "#09639a" }}>{t("settings")}</Link>
+          </span>
+        </div>
+
+        <div style={{ display: "grid", gap: 5 }}>
+          {meterRows.map((m) => (
+            <span key={m.icon} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 14, textAlign: "center", color: m.color }}>{m.icon}</span>
+              <span className="meter" style={{ width: 122 }}>
+                <span style={{ width: `${m.pct}%` }} />
+              </span>
+            </span>
+          ))}
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 14, textAlign: "center", color: "#5a6167" }}>§</span>
+            <span style={{ fontWeight: 700 }}>{money} §</span>
+          </span>
+        </div>
+
+        <div style={{ flex: 1, display: "grid", gap: 5, alignContent: "start" }}>
+          <span><b>{t("gameLbl")}:</b> Fameworld</span>
+          <span><b>{t("points")}:</b> <Link href="/charts" style={{ color: "#09639a" }}>{Math.round(character.starValue * 10)}</Link></span>
+          <span><b>{t("activeDays")}:</b> {character.age * 3} {t("daysWord")}</span>
+          <span><b>{t("statusLbl")}:</b> {character.hospitalized ? t("statusHospital") : t("statusNormal")}</span>
+        </div>
+      </div>
+    </>
   );
 }
+
+const iconStyle = { textDecoration: "none", color: "#5a6167" };
